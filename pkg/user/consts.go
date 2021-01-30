@@ -1,4 +1,4 @@
-package uc
+package user
 
 const (
 	SignCookieName = "token"

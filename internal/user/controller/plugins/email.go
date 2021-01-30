@@ -10,15 +10,20 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-post-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type EmailAuthentication struct {
+	cfg        *config.VEConfig
 	postClient postpb.PostServiceClient
 }
 
-func NewEmailAuthentication(cliFactory factory.GRPCClientFactory) *EmailAuthentication {
+func NewEmailAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientFactory) Plugin {
 	return &EmailAuthentication{
+		cfg:        cfg,
 		postClient: cliFactory.GetPostCenterClient(),
 	}
 }
@@ -37,8 +42,8 @@ func (ea *EmailAuthentication) FixUserId(user *userpb.UserId) (*userpb.UserId, b
 	return nil, false
 }
 
-func (ea *EmailAuthentication) TriggerAuthentication(ctx context.Context, userName, code string, validDelay time.Duration) (err error) {
-	err = ea.sendEmail(ctx, "验证码", "0", userName, code, validDelay)
+func (ea *EmailAuthentication) TriggerAuthentication(ctx context.Context, userName, code string) (err error) {
+	err = ea.sendEmail(ctx, "验证码", "0", userName, code, ea.cfg.ValidDelayDuration)
 	if err != nil {
 		return
 	}
@@ -95,4 +100,18 @@ func (ea *EmailAuthentication) makeMaskSafeMail(ctx context.Context, mail string
 
 func (ea *EmailAuthentication) GetNickName(ctx context.Context, userName string) string {
 	return ea.makeMaskSafeMail(ctx, userName)
+}
+
+func (ea *EmailAuthentication) TryAutoLogin(ctx context.Context, user *userpb.UserId, token string) (
+	userFixed *userpb.UserId, nickName, avatar string, err error) {
+	err = status.Error(codes.Unimplemented, "")
+	return
+}
+
+func (ea *EmailAuthentication) GetSendLockTimeDuration() time.Duration {
+	return ea.cfg.SendDelayDuration
+}
+
+func (ea *EmailAuthentication) GetValidDelayDuration() time.Duration {
+	return ea.cfg.ValidDelayDuration
 }

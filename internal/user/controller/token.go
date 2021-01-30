@@ -14,7 +14,7 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/utils"
 	"github.com/satori/go.uuid"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
-	"github.com/sbasestarter/user/pkg/uc"
+	"github.com/sbasestarter/user/pkg/user"
 )
 
 // AuthInfo class on token
@@ -206,7 +206,7 @@ func (c *Controller) compareIP(ctx context.Context, ip1, ip2 string) bool {
 }
 
 func (c *Controller) getUserTokenCookie(ctx context.Context) string {
-	return grpce.GetStringFromContext(ctx, uc.SignCookieName)
+	return grpce.GetStringFromContext(ctx, user.SignCookieName)
 }
 
 func (c *Controller) genGaToken(ctx context.Context, userId int64) (token string, err error) {

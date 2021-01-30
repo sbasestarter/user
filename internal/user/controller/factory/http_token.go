@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sbasestarter/user/pkg/uc"
+	"github.com/sbasestarter/user/pkg/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -32,7 +32,7 @@ func (impl *httpTokenImpl) SetUserTokenCookie(ctx context.Context, token string)
 
 	cookie := http.Cookie{
 		Domain:   domain,
-		Name:     uc.SignCookieName,
+		Name:     user.SignCookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
@@ -49,7 +49,7 @@ func (impl *httpTokenImpl) UnsetUserTokenCookie(ctx context.Context, token strin
 
 	cookie := http.Cookie{
 		Domain:   domain,
-		Name:     uc.SignCookieName,
+		Name:     user.SignCookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
