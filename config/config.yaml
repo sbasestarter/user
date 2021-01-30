@@ -1,0 +1,33 @@
+GRpcServerConfig:
+  Name: "post:1"
+  Address: ":9120"
+  DiscoveryExConfig:
+    ExternalAddress: "127.0.0.1"
+DbConfig:
+  Redis:
+    "redis-1":
+      DSN: "redis://:redis_default_pass1@dev.env:8900/2"
+  MySQL:
+    "mysql":
+      DSN: "root:mysql_root_default_pass1@tcp(dev.env:8306)/user?charset=utf8"
+GoogleAuthenticator:
+  Force: false
+  Enable: true
+  Issuer: lalapapa
+DefaultUserAvatar: "raw-user.png"
+PwdSecret: "zhou"
+Token:
+  Secret: "sectoken__"
+  Domain: "cs.ymipro-l.com"
+  Expire: 3650h
+  SSOExpire: 1m
+DummyVerifyCode: ""
+EmailConfig:
+  SendDelayDuration: 10s
+  ValidDelayDuration: 5m
+
+CsrfExpire: 1m
+
+DiscoveryServerNames:
+  "post": "post"
+  "file-center": "file-center"
