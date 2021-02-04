@@ -51,12 +51,12 @@ func NewGRPCClientFactory(ctx context.Context, getter discovery.Getter, cfg *con
 		return nil
 	}
 
-	postConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, postServerName, nil)
+	postConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, postServerName, nil, nil)
 	if err != nil {
 		loge.Fatalf(ctx, "dial %v failed: %v", postServerName, err)
 		return nil
 	}
-	fileCenterConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, fileCenterServerName, nil)
+	fileCenterConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, fileCenterServerName, nil, nil)
 	if err != nil {
 		loge.Fatalf(ctx, "dial %v failed: %v", fileCenterServerName, err)
 		return nil
