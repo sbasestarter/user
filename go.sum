@@ -266,8 +266,8 @@ github.com/sgostarter/libconfig v0.0.0-20210124060601-44819d15d164 h1:Cm6ufl071a
 github.com/sgostarter/libconfig v0.0.0-20210124060601-44819d15d164/go.mod h1:wQu+wjJ5jJC38EZPmLBLZ+cEkKko1niHSS+wHeu6Gxg=
 github.com/sgostarter/liblog v0.0.0-20210130135730-5a2f22214771 h1:6V6kiLLI2vlBU8Nk9h3a/wTCAsmkO0nOiyyOmnohE4o=
 github.com/sgostarter/liblog v0.0.0-20210130135730-5a2f22214771/go.mod h1:lTRF/U6CzBA5R/LlL1tRD5HDTfsBis3IVMp9Xa6zK2s=
-github.com/sgostarter/librediscovery v0.0.0-20210130140404-e11a26c1b48e h1:v5DvfOWB44WXDbrHS0eeCZ2dhwU67kIobgdoDErNPoY=
-github.com/sgostarter/librediscovery v0.0.0-20210130140404-e11a26c1b48e/go.mod h1:L8ceBEK7dSLcGb/qt/mcPgtQsR6gwWdtwmMLkbb80ts=
+github.com/sgostarter/librediscovery v0.0.0-20210131093526-b394c9fc580d h1:Z4NPbJoB0DR4kTm2D0Cm2ttUdyvxHn3tRmCeV+JSMI8=
+github.com/sgostarter/librediscovery v0.0.0-20210131093526-b394c9fc580d/go.mod h1:L8ceBEK7dSLcGb/qt/mcPgtQsR6gwWdtwmMLkbb80ts=
 github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9NzErvs504Cn4c5DxATwIqPbtswREoFCre64PpcG4=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
