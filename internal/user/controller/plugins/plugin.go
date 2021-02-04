@@ -8,8 +8,8 @@ import (
 )
 
 type Plugin interface {
-	FixUserId(user *userpb.UserId) (*userpb.UserId, bool)
-	TriggerAuthentication(ctx context.Context, userName, code string) (err error)
+	FixUserId(ctx context.Context, user *userpb.UserId) (*userpb.UserId, bool, error)
+	TriggerAuthentication(ctx context.Context, userName, code string, purpose userpb.TriggerAuthPurpose) (err error)
 	GetNickName(ctx context.Context, userName string) string
 	TryAutoLogin(ctx context.Context, user *userpb.UserId, token string) (
 		userFixed *userpb.UserId, nickName, avatar string, err error)

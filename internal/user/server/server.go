@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/jiuzhou-zhao/go-fundamental/dbtoolset"
@@ -18,6 +19,7 @@ type UserServer struct {
 }
 
 func NewUserServer(ctx context.Context, cfg *config.Config) *UserServer {
+	rand.Seed(time.Now().UnixNano() + 987543)
 	dbToolset, err := dbtoolset.NewDBToolset(ctx, &cfg.DBConfig, loge.GetGlobalLogger().GetLogger())
 	if err != nil {
 		loge.Fatalf(ctx, "init db toolset failed: %v", err)
@@ -70,7 +72,7 @@ func (us *UserServer) makeSignResponse(status userpb.UserStatus, token string, i
 
 func (us *UserServer) TriggerAuth(ctx context.Context, req *userpb.TriggerAuthRequest) (*userpb.TriggerAuthResponse, error) {
 	return &userpb.TriggerAuthResponse{
-		Status: us.makeStatus(us.controller.TriggerAuth(ctx, req.User)),
+		Status: us.makeStatus(us.controller.TriggerAuth(ctx, req.User, req.Purpose)),
 	}, nil
 }
 

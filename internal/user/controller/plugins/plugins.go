@@ -26,6 +26,8 @@ func NewPlugins(cfg *config.Config, cliFactory factory.GRPCClientFactory) *Plugi
 
 	plugins.authentications[userpb.VerificationEquipment_VEMail.String()] =
 		NewEmailAuthentication(&cfg.EmailConfig, cliFactory)
+	plugins.authentications[userpb.VerificationEquipment_VEPhone.String()] =
+		NewPhoneAuthentication(&cfg.PhoneConfig, cliFactory)
 
 	return plugins
 }
@@ -51,13 +53,14 @@ func (ps *Plugins) pluginsDo(user *userpb.UserId, fn func(plugin Plugin) bool) {
 }
 
 func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus,
-	userFixed *userpb.UserId) {
+	userFixed *userpb.UserId, err error) {
 
 	status = userpb.UserStatus_US_DONT_SUPPORT
 
 	if user == nil {
 		status = userpb.UserStatus_US_FAILED
-		loge.Errorf(ctx, "invalid user: %+v", user)
+		err = fmt.Errorf("invalid user: %+v", user)
+		loge.Error(ctx, err)
 		return
 	}
 
@@ -69,19 +72,24 @@ func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status u
 	}
 
 	ps.pluginsDo(user, func(plugin Plugin) bool {
-		userResp, ok := plugin.FixUserId(user)
+		userResp, ok, errRet := plugin.FixUserId(ctx, user)
 		if !ok {
 			return false
 		}
-		status = userpb.UserStatus_US_SUCCESS
-		userFixed = userResp
+		if errRet != nil {
+			err = errRet
+			status = userpb.UserStatus_US_BAD_INPUT
+		} else {
+			status = userpb.UserStatus_US_SUCCESS
+			userFixed = userResp
+		}
 		return true
 	})
 
 	return
 }
 
-func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserId) (
+func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserId, purpose userpb.TriggerAuthPurpose) (
 	status userpb.UserStatus, code string, err error) {
 
 	status = userpb.UserStatus_US_DONT_SUPPORT
@@ -89,7 +97,7 @@ func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserI
 	newCode := ps.newVerifyCode()
 
 	ps.pluginDo(user, func(plugin Plugin) {
-		err = plugin.TriggerAuthentication(ctx, user.UserName, newCode)
+		err = plugin.TriggerAuthentication(ctx, user.UserName, newCode, purpose)
 		if err != nil {
 			status = userpb.UserStatus_US_FAILED
 		} else {
@@ -136,7 +144,7 @@ func (ps *Plugins) SendLockTimeDuration(_ context.Context, user *userpb.UserId) 
 
 func (ps *Plugins) ValidDelayDuration(ctx context.Context, user *userpb.UserId) (duration time.Duration) {
 	ps.pluginDo(user, func(plugin Plugin) {
-		duration = plugin.GetSendLockTimeDuration()
+		duration = plugin.GetValidDelayDuration()
 	})
 	return
 }

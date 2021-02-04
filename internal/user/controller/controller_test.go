@@ -18,7 +18,7 @@ func fakeRegisterUser(t *testing.T) string {
 }
 
 func fakeRegisterUserById(user *userpb.UserId, t *testing.T) string {
-	status, err := TestController.TriggerAuth(context.Background(), user)
+	status, err := TestController.TriggerAuth(context.Background(), user, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -33,11 +33,11 @@ func fakeRegisterUserById(user *userpb.UserId, t *testing.T) string {
 func TestTriggerAuth(t *testing.T) {
 	TCasePre()
 
-	status, err := TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.True(t, status == userpb.UserStatus_US_SUCCESS)
 
-	status, err = TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err = TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.True(t, status == userpb.UserStatus_US_VERIFY_TOO_QUICK)
 
@@ -50,7 +50,7 @@ func TestTriggerAuth(t *testing.T) {
 		TestController.redis.Del(ctx, redisKeyForVeAuth(redisUsername(userId2), keyCatAuthLock))
 	})
 
-	status, err = TestController.TriggerAuth(context.Background(), userId2)
+	status, err = TestController.TriggerAuth(context.Background(), userId2, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.True(t, status == userpb.UserStatus_US_DONT_SUPPORT)
 
@@ -67,7 +67,7 @@ func TestRegisterLogin(t *testing.T) {
 		"123456", false)
 	assert.Equal(t, status, userpb.UserStatus_US_WRONG_CODE)
 
-	status, err := TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -80,7 +80,7 @@ func TestRegisterLogin(t *testing.T) {
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
 		TestController.redis.Del(ctx, redisKeyForVeAuth(redisUsername(TestUserId), keyCatAuthLock))
 	})
-	status, err = TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err = TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -113,7 +113,7 @@ func TestRegisterLogin(t *testing.T) {
 		utils.DefRedisTimeoutOp(func(ctx context.Context) {
 			TestController.redis.Del(ctx, redisKeyForVeAuth(redisUsername(TestUserId), keyCatAuthLock))
 		})
-		status, err = TestController.TriggerAuth(context.Background(), TestUserId)
+		status, err = TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 		assert.Nil(t, err)
 		assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -230,7 +230,7 @@ func TestGa2(t *testing.T) {
 func TestSSOLogin1(t *testing.T) {
 	TCasePre()
 
-	status, err := TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -279,7 +279,7 @@ func TestController_ResetPassword(t *testing.T) {
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
 		TestController.redis.Del(ctx, redisKeyForVeAuth(redisUsername(TestUserId), keyCatAuthLock))
 	})
-	status, err := TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -299,7 +299,7 @@ func TestController_ResetPassword(t *testing.T) {
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
 		TestController.redis.Del(ctx, redisKeyForVeAuth(redisUsername(TestUserId), keyCatAuthLock))
 	})
-	status, err = TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err = TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
@@ -357,7 +357,7 @@ func TestController_ChangePassword(t *testing.T) {
 	fakeRegisterUser(t)
 
 	TestController.redis.Del(context.Background(), redisKeyForVeAuth(redisUsername(TestUserId), keyCatAuthLock))
-	status, err := TestController.TriggerAuth(context.Background(), TestUserId)
+	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
 	assert.Nil(t, err)
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 

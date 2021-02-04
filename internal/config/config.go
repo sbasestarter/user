@@ -16,6 +16,7 @@ type Config struct {
 	Token               tokenConfig
 	DummyVerifyCode     string
 	EmailConfig         VEConfig
+	PhoneConfig         VEConfig
 	CsrfExpire          time.Duration
 	WhiteListTokens     []string
 

@@ -1,5 +1,5 @@
 GRpcServerConfig:
-  Name: "post:1"
+  Name: "user:1"
   Address: ":9120"
   DiscoveryExConfig:
     ExternalAddress: "127.0.0.1"
@@ -25,9 +25,12 @@ DummyVerifyCode: ""
 EmailConfig:
   SendDelayDuration: 10s
   ValidDelayDuration: 5m
+PhoneConfig:
+  SendDelayDuration: 10s
+  ValidDelayDuration: 5m
 
 CsrfExpire: 1m
 
 DiscoveryServerNames:
-  "post": "post"
+  "post": "post-sbs"
   "file-center": "file-center"

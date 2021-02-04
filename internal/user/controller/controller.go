@@ -63,20 +63,21 @@ func NewController(cfg *config.Config, logger *loge.Logger, redis *redis.Client,
 	}
 }
 
-func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId) (userpb.UserStatus, error) {
+func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpose userpb.TriggerAuthPurpose) (userpb.UserStatus, error) {
 	if user == nil || user.UserVe == "" {
 		return userpb.UserStatus_US_FAILED, errors.New("invalid input")
 	}
 
-	status, fixedUser := c.authPlugins.FixUserId(ctx, user)
-	if status == userpb.UserStatus_US_SUCCESS {
-		user = fixedUser
+	status, fixedUser, err := c.authPlugins.FixUserId(ctx, user)
+	if status != userpb.UserStatus_US_SUCCESS {
+		return status, err
 	}
+
+	user = fixedUser
 
 	// check freq
 	key := redisKeyForVeAuth(redisUsername(user), keyCatAuthLock)
 
-	var err error
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
 		_, err = c.redis.Get(ctx, key).Result()
 	})
@@ -99,7 +100,7 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId) (user
 		return userpb.UserStatus_US_INTERNAL_ERROR, err
 	}
 
-	status, code, err := c.authPlugins.TriggerAuthentication(ctx, user)
+	status, code, err := c.authPlugins.TriggerAuthentication(ctx, user, purpose)
 	if status != userpb.UserStatus_US_SUCCESS {
 		return status, err
 	}
@@ -131,10 +132,12 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 		return
 	}
 
-	status, fixedUser := c.authPlugins.FixUserId(ctx, user)
-	if status == userpb.UserStatus_US_SUCCESS {
-		user = fixedUser
+	status, fixedUser, err := c.authPlugins.FixUserId(ctx, user)
+	if status != userpb.UserStatus_US_SUCCESS {
+		return
 	}
+
+	user = fixedUser
 
 	status, err = c.checkVe(user, codeForVe)
 	if status != userpb.UserStatus_US_SUCCESS {
@@ -223,10 +226,11 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 
 	if authInfo == nil {
 		var fixedUser *userpb.UserId
-		status, fixedUser = c.authPlugins.FixUserId(ctx, userID)
-		if status == userpb.UserStatus_US_SUCCESS {
-			userID = fixedUser
+		status, fixedUser, err = c.authPlugins.FixUserId(ctx, userID)
+		if status != userpb.UserStatus_US_SUCCESS {
+			return
 		}
+		userID = fixedUser
 
 		var uid int64
 		uid, err = c.m.GetUserIDBySource(userID.UserName, userID.UserVe)
@@ -495,10 +499,11 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 		return
 	}
 
-	status, fixedUser := c.authPlugins.FixUserId(ctx, user)
-	if status == userpb.UserStatus_US_SUCCESS {
-		user = fixedUser
+	status, fixedUser, err := c.authPlugins.FixUserId(ctx, user)
+	if status != userpb.UserStatus_US_SUCCESS {
+		return
 	}
+	user = fixedUser
 
 	status, err = c.checkVe(user, codeForVe)
 	if status != userpb.UserStatus_US_SUCCESS {

@@ -7,7 +7,7 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/discovery"
 	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
-	"github.com/sbasestarter/proto-repo/gen/protorepo-post-go"
+	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"github.com/sbasestarter/user/internal/config"
 	"google.golang.org/grpc"
 )
@@ -21,7 +21,7 @@ const (
 
 type GRPCClientFactory interface {
 	GetFileCenterClient() filecenterpb.FileCenterClient
-	GetPostCenterClient() postpb.PostServiceClient
+	GetPostCenterClient() postsbspb.PostSBSServiceClient
 }
 
 type gRPCClientFactoryImpl struct {
@@ -72,6 +72,6 @@ func (impl *gRPCClientFactoryImpl) GetFileCenterClient() filecenterpb.FileCenter
 	return filecenterpb.NewFileCenterClient(impl.fileCenterConn)
 }
 
-func (impl *gRPCClientFactoryImpl) GetPostCenterClient() postpb.PostServiceClient {
-	return postpb.NewPostServiceClient(impl.postConn)
+func (impl *gRPCClientFactoryImpl) GetPostCenterClient() postsbspb.PostSBSServiceClient {
+	return postsbspb.NewPostSBSServiceClient(impl.postConn)
 }

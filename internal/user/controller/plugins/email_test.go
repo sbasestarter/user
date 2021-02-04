@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-post-go"
+	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 )
 
 func TestEmailAuthentication_FixUserId(t *testing.T) {
 	type fields struct {
-		postClient postpb.PostServiceClient
+		postClient postsbspb.PostSBSServiceClient
 	}
 	type args struct {
 		user *userpb.UserId
@@ -75,10 +75,10 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ea := &EmailAuthentication{
+			ea := &emailAuthentication{
 				postClient: tt.fields.postClient,
 			}
-			got, got1 := ea.FixUserId(tt.args.user)
+			got, got1, _ := ea.FixUserId(context.Background(), tt.args.user)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("FixUserId() got = %v, want %v", got, tt.want)
 			}
@@ -91,7 +91,7 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 
 func TestEmailAuthentication_makeMaskSafeMail(t *testing.T) {
 	type fields struct {
-		postClient postpb.PostServiceClient
+		postClient postsbspb.PostSBSServiceClient
 	}
 	type args struct {
 		mail string
@@ -129,7 +129,7 @@ func TestEmailAuthentication_makeMaskSafeMail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ea := &EmailAuthentication{
+			ea := &emailAuthentication{
 				postClient: tt.fields.postClient,
 			}
 			if got := ea.makeMaskSafeMail(context.Background(), tt.args.mail); got != tt.want {

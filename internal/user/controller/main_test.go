@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"os"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/utils"
 	"github.com/sbasestarter/db-orm/go/user"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
-	"github.com/sbasestarter/proto-repo/gen/protorepo-post-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
@@ -60,11 +60,11 @@ func (c *fakeFileCenterClient) UpdateFile(ctx context.Context, in *filecenterpb.
 type fakePostCenterClient struct {
 }
 
-func (c *fakePostCenterClient) SendTemplate(ctx context.Context, in *postpb.SendTemplateRequest,
-	opts ...grpc.CallOption) (*postpb.SendTemplateResponse, error) {
-	return &postpb.SendTemplateResponse{
-		Status: &postpb.ServerStatus{
-			Status: postpb.PostStatus_PS_SUCCESS,
+func (c *fakePostCenterClient) PostCode(ctx context.Context, in *postsbspb.PostCodeRequest,
+	opts ...grpc.CallOption) (*postsbspb.PostCodeResponse, error) {
+	return &postsbspb.PostCodeResponse{
+		Status: &postsbspb.ServerStatus{
+			Status: postsbspb.PostSBSStatus_PS_SBS_SUCCESS,
 		},
 	}, nil
 }
@@ -76,7 +76,7 @@ func (f *fakeGRPCClientFactory) GetFileCenterClient() filecenterpb.FileCenterCli
 	return &fakeFileCenterClient{}
 }
 
-func (f *fakeGRPCClientFactory) GetPostCenterClient() postpb.PostServiceClient {
+func (f *fakeGRPCClientFactory) GetPostCenterClient() postsbspb.PostSBSServiceClient {
 	return &fakePostCenterClient{}
 }
 
