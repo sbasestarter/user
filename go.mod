@@ -10,7 +10,7 @@ require (
 	github.com/go-xorm/xorm v0.7.9
 	github.com/issue9/assert v1.3.1
 	github.com/issue9/identicon v1.0.1
-	github.com/jiuzhou-zhao/go-fundamental v0.0.5-0.20210204084503-4e072abece93
+	github.com/jiuzhou-zhao/go-fundamental v0.0.5-0.20210205095302-83d5a43cb2f3
 	github.com/satori/go.uuid v1.2.0
 	github.com/sbasestarter/db-orm v0.0.0-20210125004827-5b0f71b3ce85
 	github.com/sbasestarter/proto-repo v0.0.2
