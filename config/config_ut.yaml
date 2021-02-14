@@ -1,0 +1,47 @@
+GRpcServerConfig:
+  Name: "user:1"
+  Address: ":9120"
+  DiscoveryExConfig:
+    ExternalAddress: "127.0.0.1"
+  EnableTracing: true
+  TracingConfig:
+    ServerAddr: "dev.env:6831"
+    ServiceName: "user"
+  EnableGRpcWeb: true
+  GRpcWebAddress: ":9121"
+GRpcClientConfigTpl:
+  EnableTracing: true
+  TracingConfig:
+    ServerAddr: "dev.env:6831"
+    ServiceName: "user-cli"
+DbConfig:
+  Redis:
+    "redis-1":
+      DSN: "redis://:redis_default_pass1@dev.env:8900/2"
+  MySQL:
+    "mysql":
+      DSN: "root:mysql_root_default_pass1@tcp(dev.env:8306)/ut?charset=utf8"
+GoogleAuthenticator:
+  Force: false
+  Enable: true
+  Issuer: lalapapa
+DefaultUserAvatar: "raw-user.png"
+PwdSecret: "zhou"
+Token:
+  Secret: "sectoken__"
+  Domain: "cs.ymipro-l.com"
+  Expire: 3650h
+  SSOExpire: 1m
+DummyVerifyCode: ""
+EmailConfig:
+  SendDelayDuration: 10s
+  ValidDelayDuration: 5m
+PhoneConfig:
+  SendDelayDuration: 10s
+  ValidDelayDuration: 5m
+
+CsrfExpire: 1m
+
+DiscoveryServerNames:
+  "post": "post-sbs"
+  "file-center": "file-center"

@@ -162,6 +162,22 @@ func (us *UserServer) UpdateDetailInfo(ctx context.Context, req *userpb.UpdateDe
 	}, nil
 }
 
+func (us *UserServer) GetUserList(ctx context.Context, req *userpb.GetUserListRequest) (*userpb.GetUserListResponse, error) {
+	status, cnt, users, err := us.controller.GetUserList(ctx, req.Token, req.CsrfToken, req.Offset, req.Limit, req.Keyword)
+	return &userpb.GetUserListResponse{
+		Status: us.makeStatus(status, err),
+		Cnt:    cnt,
+		Users:  users,
+	}, nil
+}
+
+func (us *UserServer) ManagerUser(ctx context.Context, req *userpb.ManagerUserRequest) (*userpb.ManagerUserResponse, error) {
+	status, err := us.controller.ManagerUser(ctx, req)
+	return &userpb.ManagerUserResponse{
+		Status: us.makeStatus(status, err),
+	}, nil
+}
+
 func (us *UserServer) AdminProfile(ctx context.Context, req *userpb.AdminProfileRequest) (*userpb.AdminProfileResponse, error) {
 	status, userInfo, err := us.controller.AdminProfile(ctx, req.Token)
 	return &userpb.AdminProfileResponse{

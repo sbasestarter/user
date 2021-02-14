@@ -59,4 +59,7 @@ func TestModel_User(t *testing.T) {
 	pass, err = TestModel.IsUserTrust(uid, TestIP2)
 	assert.Nil(t, err)
 	assert.False(t, pass)
+
+	_, _, err = TestModel.GetUserList(0, 10, "")
+	assert.Nil(t, err)
 }

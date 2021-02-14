@@ -292,3 +292,79 @@ func (m *Model) UpdateUserExt(userID int64, phone, email, weChat string) error {
 	})
 	return err
 }
+
+type UserItem struct {
+	user.UserInfo `xorm:"extends"`
+	// nolint:govet
+	user.UserAuthentication `xorm:"extends"`
+	// nolint:govet
+	user.UserSource `xorm:"extends"`
+}
+
+func (m *Model) getUserListSession(keyword string) *xorm.Session {
+	session := m.db.Table(user.OUserInfo.TableName())
+	session = session.Join("LEFT", user.OUserAuthentication.TableName(),
+		user.OUserAuthentication.UserIdWT()+" = "+user.OUserInfo.UserIdWT())
+	session = session.Join("LEFT", user.OUserSource.TableName(),
+		user.OUserSource.UserIdWT()+" = "+user.OUserInfo.UserIdWT())
+	if keyword != "" {
+		session = session.Where(user.OUserInfo.NickNameWT()+" like ?'", "%"+keyword+"%")
+		session = session.Or(user.OUserSource.UserNameWT()+" like ?'", "%"+keyword+"%")
+	}
+	return session
+}
+
+func (m *Model) GetUserList(start int64, limit int, keyword string) (int64, []*UserItem, error) {
+	cnt, err := m.getUserListSession(keyword).Count()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	session := m.getUserListSession(keyword)
+	if limit > 0 && start >= 0 {
+		session = session.Limit(int(limit), int(start))
+	}
+	session = session.Desc("id")
+
+	var users []*UserItem
+	err = session.Find(&users)
+	if err != nil {
+		return 0, nil, err
+	}
+	return cnt, users, nil
+}
+
+func (m *Model) SetUserPrivileges(userID int64, privileges int) error {
+	_, err := m.db.Where(user.OUserInfo.EqUserId(), userID).Cols(user.OUserInfo.Privileges()).
+		Update(&user.UserInfo{Privileges: privileges})
+	return err
+}
+
+func (m *Model) DeleteUser(userID int64) error {
+	session := m.db.NewSession()
+	err := session.Begin()
+	if err != nil {
+		return err
+	}
+	_, err = session.Delete(&user.UserAuthentication{UserId: userID})
+	if err != nil {
+		return err
+	}
+	_, err = session.Delete(&user.UserExt{UserId: userID})
+	if err != nil {
+		return err
+	}
+	_, err = session.Delete(&user.UserInfo{UserId: userID})
+	if err != nil {
+		return err
+	}
+	_, err = session.Delete(&user.UserSource{UserId: userID})
+	if err != nil {
+		return err
+	}
+	_, err = session.Delete(&user.UserTrust{UserId: userID})
+	if err != nil {
+		return err
+	}
+	return session.Commit()
+}

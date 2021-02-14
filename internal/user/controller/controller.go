@@ -607,7 +607,6 @@ func (c *Controller) ChangePassword(ctx context.Context, token, csrfToken,
 		return
 	}
 
-	c.removeCsrfToken(ctx, csrfToken)
 	return c.signResponseInfoAfterCheckPass(ctx, authInfo.UserID, nil, 1)
 }
 
@@ -714,6 +713,122 @@ func (c *Controller) fixAndVerifyToken(ctx context.Context, token string) (
 	if err != nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 		status = userpb.UserStatus_US_BAD_INPUT
+		return
+	}
+	status = userpb.UserStatus_US_SUCCESS
+	return
+}
+
+func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, offset int64, limit int32,
+	keyword string) (status userpb.UserStatus, cnt int64, users []*userpb.UserListItem, err error) {
+	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
+	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+		c.logger.Errorf(ctx, "verify token failed: %v", err)
+		status = userpb.UserStatus_US_BAD_INPUT
+		return
+	}
+	status, err = c.verifyCsrfToken(ctx, csrfToken)
+	if status != userpb.UserStatus_US_SUCCESS {
+		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
+		return
+	}
+	adminUserInfo, err := c.m.GetUserInfo(authInfo.UserID)
+	if err != nil {
+		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		c.logger.Errorf(ctx, "admin user by id %v failed: %v", authInfo.UserID, err)
+		return
+	}
+	if adminUserInfo.Privileges == 0 {
+		status = userpb.UserStatus_US_DONT_SUPPORT
+		c.logger.Warnf(ctx, "user %v no permission", authInfo.UserID)
+		return
+	}
+	cnt, dbUsers, err := c.m.GetUserList(offset, int(limit), keyword)
+	if err != nil {
+		status = userpb.UserStatus_US_FAILED
+		return
+	}
+	for _, dbUser := range dbUsers {
+		gaEnabled := false
+		if dbUser.UserSource.UserId > 0 {
+			gaEnabled = c.gaEnabled(ctx, authInfo.UserID)
+		}
+		users = append(users, c.userItem2PbUserListItem(dbUser, gaEnabled))
+	}
+	return
+}
+
+func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserRequest) (status userpb.UserStatus, err error) {
+	status, _, authInfo, err := c.fixAndVerifyToken(ctx, req.Token)
+	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+		c.logger.Errorf(ctx, "verify token failed: %v", err)
+		status = userpb.UserStatus_US_BAD_INPUT
+		return
+	}
+	status, err = c.verifyCsrfToken(ctx, req.CsrfToken)
+	if status != userpb.UserStatus_US_SUCCESS {
+		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
+		return
+	}
+
+	adminUserInfo, err := c.m.GetUserInfo(authInfo.UserID)
+	if err != nil {
+		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		c.logger.Errorf(ctx, "admin user by id %v failed: %v", req.Uid, err)
+		return
+	}
+
+	userInfo, err := c.m.GetUserInfo(req.Uid)
+	if err != nil {
+		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		c.logger.Errorf(ctx, "search user by id %v failed: %v", req.Uid, err)
+		return
+	}
+
+	if adminUserInfo.UserId == userInfo.UserId && req.Type == userpb.ManagerUserType_MUTDelete {
+		status = userpb.UserStatus_US_INTERNAL_ERROR
+		c.logger.Errorf(ctx, "try to kill self: %v", adminUserInfo.UserId)
+		return
+	}
+
+	if adminUserInfo.Privileges == 0 {
+		status = userpb.UserStatus_US_DONT_SUPPORT
+		c.logger.Warnf(ctx, "user %v no permission", req.Uid)
+		return
+	}
+
+	if req.Type == userpb.ManagerUserType_MUTSetAdminPrivilege {
+		err = c.m.SetUserPrivileges(req.Uid, 1)
+	} else if req.Type == userpb.ManagerUserType_MUTUnsetAdminPrivilege {
+		err = c.m.SetUserPrivileges(req.Uid, 0)
+	} else if req.Type == userpb.ManagerUserType_MUTDelete {
+		err = c.m.DeleteUser(req.Uid)
+	} else if req.Type == userpb.ManagerUserType_MUTSwitchAdminPrivilege {
+		privileges := userInfo.Privileges
+		if privileges == 0 {
+			privileges = 1
+		} else {
+			privileges = 0
+		}
+		err = c.m.SetUserPrivileges(req.Uid, privileges)
+	} else if req.Type == userpb.ManagerUserType_MUTResetPassword {
+		if req.GetResetPassword() == nil {
+			status = userpb.UserStatus_US_BAD_INPUT
+			c.logger.Warn(ctx, "no reset password struct")
+			return
+		}
+		var password string
+		password, err = c.passEncrypt(req.GetResetPassword().NewPassword)
+		if err != nil {
+			c.logger.Errorf(ctx, "pass encrypt failed: %v", err)
+			status = userpb.UserStatus_US_INTERNAL_ERROR
+			return
+		}
+		err = c.m.UpdateUserPassword(req.Uid, password)
+	}
+	if err != nil {
+		c.logger.Errorf(ctx, "mysql failed: %v", err)
+		status = userpb.UserStatus_US_INTERNAL_ERROR
 		return
 	}
 	status = userpb.UserStatus_US_SUCCESS

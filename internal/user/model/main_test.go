@@ -24,11 +24,14 @@ func TestMain(m *testing.M) {
 	logger := &loge.ConsoleLogger{}
 
 	var cfg config.Config
-	_, _ = libconfig.Load("config", &cfg)
+	_, _ = libconfig.LoadOnConfigPath("config_ut", []string{"../../../config"}, &cfg)
 
 	TestDbToolset, _ = dbtoolset.NewDBToolset(context.Background(), &cfg.DBConfig, logger)
 
 	TestModel = NewModel(TestDbToolset.GetMySQL(), helper.NewUtilsImpl())
+
+	_ = TestDbToolset.GetMySQL().Sync(&user.UserSource{}, &user.UserExt{}, &user.UserInfo{},
+		&user.UserAuthentication{}, &user.UserTrust{})
 
 	_, _ = TestDbToolset.GetMySQL().Where("true").Delete(&user.UserAuthentication{})
 	_, _ = TestDbToolset.GetMySQL().Where("true").Delete(&user.UserSource{})

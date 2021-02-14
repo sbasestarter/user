@@ -275,6 +275,7 @@ func (c *Controller) verifyCsrfToken(ctx context.Context, csrfToken string) (use
 		c.logger.Errorf(ctx, "redis invalid token: %v", err)
 		return userpb.UserStatus_US_WRONG_CODE, err
 	}
+	c.removeCsrfToken(ctx, csrfToken)
 	return userpb.UserStatus_US_SUCCESS, nil
 }
 
