@@ -58,16 +58,26 @@ func main() {
 }
 
 func fixConfig(cfg *config.Config) {
-	if cfg.EmailConfig.SendDelayDuration == 0 {
+	if cfg.EmailConfig.SendDelayDuration <= 0 {
 		cfg.EmailConfig.SendDelayDuration = time.Second
 	}
-	if cfg.EmailConfig.ValidDelayDuration == 0 {
+	if cfg.EmailConfig.ValidDelayDuration <= 0 {
 		cfg.EmailConfig.ValidDelayDuration = time.Minute
 	}
-	if cfg.PhoneConfig.SendDelayDuration == 0 {
+	if cfg.PhoneConfig.SendDelayDuration <= 0 {
 		cfg.PhoneConfig.SendDelayDuration = time.Second
 	}
-	if cfg.PhoneConfig.ValidDelayDuration == 0 {
+	if cfg.PhoneConfig.ValidDelayDuration <= 0 {
 		cfg.PhoneConfig.ValidDelayDuration = time.Minute
+	}
+	cfg.WhiteListSSOJumpDomainMap = make(map[string]interface{})
+	for _, s := range cfg.WhiteListSSOJumpDomain {
+		cfg.WhiteListSSOJumpDomainMap[s] = true
+	}
+	if cfg.GoogleAuthenticator.KeyExpire <= 0 {
+		cfg.GoogleAuthenticator.KeyExpire = time.Minute
+	}
+	if cfg.GoogleAuthenticator.TokenExpire <= 0 {
+		cfg.GoogleAuthenticator.TokenExpire = 5 * time.Minute
 	}
 }

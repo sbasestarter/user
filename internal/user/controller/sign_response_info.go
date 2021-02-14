@@ -11,12 +11,12 @@ func (c *Controller) signResponseInfoAfterCheckPass(ctx context.Context, userId 
 	incTrustNum int) (status userpb.UserStatus, token string, info *userpb.UserInfo,
 	err error) {
 	status, _, token, info, err = c.signResponseInfoAfterCheckPassEx(ctx, userId, userInfo, incTrustNum,
-		false)
+		false, "")
 	return
 }
 
 func (c *Controller) signResponseInfoAfterCheckPassEx(ctx context.Context, userId int64, userInfo *user.UserInfo,
-	incTrustNum int, attachSsoToken bool) (status userpb.UserStatus, ssoToken, token string, info *userpb.UserInfo,
+	incTrustNum int, attachSsoToken bool, ssoJumpURL string) (status userpb.UserStatus, ssoToken, token string, info *userpb.UserInfo,
 	err error) {
 
 	if userInfo == nil {
@@ -35,7 +35,7 @@ func (c *Controller) signResponseInfoAfterCheckPassEx(ctx context.Context, userI
 		err = nil
 	}
 	authInfo := c.dbUser2AuthInfo(userInfo)
-	ssoToken, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, attachSsoToken)
+	ssoToken, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, attachSsoToken, ssoJumpURL)
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 		status = userpb.UserStatus_US_INTERNAL_ERROR
@@ -47,19 +47,20 @@ func (c *Controller) signResponseInfoAfterCheckPassEx(ctx context.Context, userI
 }
 
 func (c *Controller) signResponseInfoOnAuthInfo(ctx context.Context, auth *AuthInfo,
-	attachSsoToken bool) (ssoToken, token string, info *userpb.UserInfo, err error) {
+	attachSsoToken bool, ssoJumpURL string) (ssoToken, token string, info *userpb.UserInfo, err error) {
+	var sessionID string
+	sessionID, token, err = c.generateToken(ctx, auth)
+	if err != nil {
+		c.logger.Errorf(ctx, "generate token failed: %v", err)
+		return
+	}
+
 	if attachSsoToken {
-		ssoToken, err = c.newSSOToken(ctx, auth)
+		ssoToken, err = c.newSSOToken(ctx, sessionID, auth, ssoJumpURL)
 		if err != nil {
 			c.logger.Errorf(ctx, "new sso token failed: %v", err)
 			return
 		}
-	}
-
-	token, err = c.generateToken(ctx, auth)
-	if err != nil {
-		c.logger.Errorf(ctx, "generate token failed: %v", err)
-		return
 	}
 
 	err = c.httpToken.SetUserTokenCookie(ctx, token)

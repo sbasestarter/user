@@ -119,7 +119,7 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 }
 
 func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForVe, newPassword string,
-	attachSsoToken bool) (status userpb.UserStatus, token string, info *userpb.UserInfo, ssoToken string, err error) {
+	attachSsoToken bool, ssoJumpURL string) (status userpb.UserStatus, token string, info *userpb.UserInfo, ssoToken string, err error) {
 
 	if user == nil || user.UserVe == "" || newPassword == "" {
 		c.logger.Errorf(ctx, "invalid input: %+v, %v", user, newPassword)
@@ -172,7 +172,7 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 	}
 
 	status, ssoToken, token, info, err = c.signResponseInfoAfterCheckPassEx(ctx, userInfo.UserId, userInfo,
-		model.UserTrustRegisterNumber, attachSsoToken)
+		model.UserTrustRegisterNumber, attachSsoToken, ssoJumpURL)
 	if status != userpb.UserStatus_US_SUCCESS {
 		c.logger.Errorf(ctx, "signResponseInfoAfterCheckPass failed: %v, %v", status, err)
 		return
@@ -188,7 +188,7 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 }
 
 func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password, codeForVe, codeForGa string,
-	attachSsoToken bool) (status userpb.UserStatus, token string, info *userpb.UserInfo, ssoToken string, err error) {
+	attachSsoToken bool, ssoJumpURL string) (status userpb.UserStatus, token string, info *userpb.UserInfo, ssoToken string, err error) {
 	if userID == nil || userID.UserVe == "" {
 		c.logger.Errorf(ctx, "invalid input: %+v", userID)
 		status = userpb.UserStatus_US_FAILED
@@ -321,7 +321,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		}
 		authInfo = c.dbUser2AuthInfo(userInfo)
 	}
-	ssoToken, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, attachSsoToken)
+	ssoToken, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, attachSsoToken, ssoJumpURL)
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 		status = userpb.UserStatus_US_INTERNAL_ERROR
@@ -347,7 +347,7 @@ func (c *Controller) SSOLogin(ctx context.Context, ssoToken string) (status user
 		status = userpb.UserStatus_US_WRONG_CODE
 		return
 	}
-	_, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, false)
+	_, token, info, err = c.signResponseInfoOnAuthInfo(ctx, authInfo, false, "")
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 		status = userpb.UserStatus_US_INTERNAL_ERROR
@@ -465,17 +465,16 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 	return
 }
 
-func (c *Controller) Profile(ctx context.Context, token string, attachSsoToken bool) (status userpb.UserStatus,
+func (c *Controller) Profile(ctx context.Context, token string, attachSsoToken bool, ssoJumpURL string) (status userpb.UserStatus,
 	userInfo *userpb.UserInfo, ssoToken string, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
 	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
-		status = userpb.UserStatus_US_BAD_INPUT
 		return
 	}
 
 	if attachSsoToken {
-		ssoToken, err = c.newSSOToken(ctx, authInfo)
+		ssoToken, err = c.newSSOToken(ctx, authInfo.SessionID, authInfo, ssoJumpURL)
 		if err != nil {
 			c.logger.Errorf(ctx, "new sso token failed: %v", err)
 			return
@@ -705,14 +704,14 @@ func (c *Controller) fixAndVerifyToken(ctx context.Context, token string) (
 	}
 
 	if fixedToken == "" {
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_US_UNAUTHENTICATED
 		return
 	}
 
 	authInfo, err = c.verifyToken(ctx, fixedToken)
 	if err != nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_US_UNAUTHENTICATED
 		return
 	}
 	status = userpb.UserStatus_US_SUCCESS

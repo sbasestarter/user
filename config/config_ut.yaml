@@ -45,3 +45,6 @@ CsrfExpire: 1m
 DiscoveryServerNames:
   "post": "post-sbs"
   "file-center": "file-center"
+
+WhiteListSSOJumpDomain:
+  - a.cn

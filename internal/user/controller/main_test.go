@@ -119,7 +119,7 @@ func TestMain(m *testing.M) {
 	logger := loge.NewLogger(nil)
 
 	var cfg config.Config
-	_, _ = libconfig.Load("config", &cfg)
+	_, _ = libconfig.LoadOnConfigPath("config_ut", []string{"../../../config"}, &cfg)
 	TestCfg = &cfg
 
 	TestToolset, _ = dbtoolset.NewDBToolset(context.Background(), &cfg.DBConfig, logger.GetLogger())

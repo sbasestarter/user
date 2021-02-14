@@ -9,18 +9,20 @@ import (
 )
 
 type Config struct {
-	GRpcServerConfig    servicetoolset.GRpcServerConfig
-	GRpcClientConfigTpl clienttoolset.GRpcClientConfig
-	DBConfig            dbtoolset.DBConfig
-	GoogleAuthenticator googleAuthenticatorOption
-	DefaultUserAvatar   string
-	PwdSecret           string
-	Token               tokenConfig
-	DummyVerifyCode     string
-	EmailConfig         VEConfig
-	PhoneConfig         VEConfig
-	CsrfExpire          time.Duration
-	WhiteListTokens     []string
+	GRpcServerConfig          servicetoolset.GRpcServerConfig
+	GRpcClientConfigTpl       clienttoolset.GRpcClientConfig
+	DBConfig                  dbtoolset.DBConfig
+	GoogleAuthenticator       googleAuthenticatorOption
+	DefaultUserAvatar         string
+	PwdSecret                 string
+	Token                     tokenConfig
+	DummyVerifyCode           string
+	EmailConfig               VEConfig
+	PhoneConfig               VEConfig
+	CsrfExpire                time.Duration
+	WhiteListTokens           []string
+	WhiteListSSOJumpDomain    []string
+	WhiteListSSOJumpDomainMap map[string]interface{} `yaml:"-"`
 
 	DiscoveryServerNames map[string]string
 }

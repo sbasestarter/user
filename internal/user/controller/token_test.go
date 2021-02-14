@@ -15,7 +15,7 @@ func TestSSOToken(t *testing.T) {
 		UserSourceIDFlag: false,
 		UserID:           1000,
 	}
-	token, err := TestController.newSSOToken(context.Background(), authInfo)
+	token, err := TestController.newSSOToken(context.Background(), "", authInfo, "a.cn")
 	assert.Nil(t, err)
 	assert.True(t, token != "")
 
@@ -30,7 +30,7 @@ func TestToken(t *testing.T) {
 		UserID:           1000,
 		ExpiresAt:        time.Now().Unix(),
 	}
-	token, err := TestController.generateToken(context.Background(), authInfo)
+	_, token, err := TestController.generateToken(context.Background(), authInfo)
 	assert.Nil(t, err)
 	assert.True(t, token != "")
 	authInfo2, err := TestController.verifyToken(context.Background(), token)

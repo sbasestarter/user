@@ -20,8 +20,8 @@ func redisUsername(user *userpb.UserId) string {
 	return fmt.Sprintf("%v_%v", user.UserName, user.UserVe)
 }
 
-func redisKeyForSSOToken(token string) string {
-	return fmt.Sprintf("sso_token_%v", token)
+func redisKeyForSSOToken(userId int64, token string) string {
+	return fmt.Sprintf("sso_token_%v_%v", userId, token)
 }
 
 func redisKeyForSession(userId int64, sessionId string) string {
@@ -34,4 +34,8 @@ func redisKeyForGaToken(userId int64, token string) string {
 
 func redisKeyForCsrfToken(tokenSessionId string) string {
 	return fmt.Sprintf("csrf_%v", tokenSessionId)
+}
+
+func redisKeyForSessionIDParent(parentSessionID string) string {
+	return fmt.Sprintf("children:session_id:%v", parentSessionID)
 }

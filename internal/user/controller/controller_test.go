@@ -23,7 +23,7 @@ func fakeRegisterUserById(user *userpb.UserId, t *testing.T) string {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, info, ssoToken, err := TestController.Register(context.Background(), user, "12312",
-		"123456", false)
+		"123456", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	t.Log(token, info, ssoToken)
 	assert.Nil(t, err)
@@ -64,7 +64,7 @@ func TestRegisterLogin(t *testing.T) {
 	TCasePre()
 
 	status, _, _, _, _ := TestController.Register(context.Background(), TestUserId, "12312",
-		"123456", false)
+		"123456", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_WRONG_CODE)
 
 	status, err := TestController.TriggerAuth(context.Background(), TestUserId, userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister)
@@ -72,7 +72,7 @@ func TestRegisterLogin(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, info, ssoToken, err := TestController.Register(context.Background(), TestUserId, "12312",
-		"123456", false)
+		"123456", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	t.Log(token, info, ssoToken)
 	assert.Nil(t, err)
@@ -85,7 +85,7 @@ func TestRegisterLogin(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, info, ssoToken, err = TestController.Register(context.Background(), TestUserId, "12312",
-		"123456", false)
+		"123456", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_USER_ALREADY_EXISTS)
 	assert.Nil(t, err)
 	t.Log(token)
@@ -93,7 +93,7 @@ func TestRegisterLogin(t *testing.T) {
 	t.Log(ssoToken)
 
 	status, token, info, ssoToken, err = TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	assert.Nil(t, err)
 	t.Log(token)
@@ -103,7 +103,7 @@ func TestRegisterLogin(t *testing.T) {
 	TestPeerIp = "127.0.0.2"
 	for idx := 0; idx < 6; idx++ { // to model's UserTrustRegisterNumber
 		status, token, info, ssoToken, err = TestController.Login(context.Background(), TestUserId, "123456", "",
-			"", false)
+			"", false, "")
 		assert.Equal(t, status, userpb.UserStatus_US_NEED_VE_AUTH)
 		assert.Nil(t, err)
 		t.Log(token)
@@ -118,7 +118,7 @@ func TestRegisterLogin(t *testing.T) {
 		assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 		status, token, info, ssoToken, err = TestController.Login(context.Background(), TestUserId, "123456",
-			"12312", "", false)
+			"12312", "", false, "")
 		assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 		assert.Nil(t, err)
 		t.Log(token)
@@ -126,7 +126,7 @@ func TestRegisterLogin(t *testing.T) {
 		t.Log(ssoToken)
 	}
 	status, token, info, ssoToken, err = TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	assert.Nil(t, err)
 	t.Log(token)
@@ -200,14 +200,14 @@ func TestGa(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_NEED_2FA_AUTH)
 
 	for retry := 0; retry <= 1; retry++ {
 		expect2, err = authenticator.MakeGoogleAuthenticatorForNow(secret2)
 		assert.Nil(t, err)
 		status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "123456", "",
-			expect2, false)
+			expect2, false, "")
 		if status == userpb.UserStatus_US_SUCCESS {
 			break
 		}
@@ -223,7 +223,7 @@ func TestGa2(t *testing.T) {
 	fakeRegisterUser(t)
 
 	status, _, _, _, _ := TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_NEED_2FA_SETUP)
 }
 
@@ -235,7 +235,7 @@ func TestSSOLogin1(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, info, ssoToken, err := TestController.Register(context.Background(), TestUserId, "12312",
-		"123456", true)
+		"123456", true, "a.cn")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	t.Log(token, info, ssoToken)
 	assert.Nil(t, err)
@@ -252,7 +252,7 @@ func TestSSOLogin2(t *testing.T) {
 	fakeRegisterUser(t)
 
 	status, _, _, ssoToken, _ := TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", true)
+		"", true, "a.cn")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, _, err := TestController.SSOLogin(context.Background(), ssoToken)
@@ -260,7 +260,7 @@ func TestSSOLogin2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, token != "")
 	assert.True(t, token != "")
-	status, userInfo, _, err := TestController.Profile(context.Background(), token, false)
+	status, userInfo, _, err := TestController.Profile(context.Background(), token, false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 	assert.Nil(t, err)
 	assert.True(t, userInfo != nil)
@@ -291,7 +291,7 @@ func TestController_ResetPassword(t *testing.T) {
 	assert.True(t, info != nil)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "123456789", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	TestCfg.GoogleAuthenticator.Force = true
@@ -311,7 +311,7 @@ func TestController_ResetPassword(t *testing.T) {
 	assert.True(t, info != nil)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "1", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_NEED_2FA_SETUP)
 
 	//
@@ -336,14 +336,14 @@ func TestController_ResetPassword(t *testing.T) {
 	assert.Nil(t, err)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "1", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_NEED_2FA_AUTH)
 
 	for retry := 0; retry <= 1; retry++ {
 		expect, err := authenticator.MakeGoogleAuthenticatorForNow(secret)
 		assert.Nil(t, err)
 		status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "1", "",
-			expect, false)
+			expect, false, "")
 		if status == userpb.UserStatus_US_SUCCESS {
 			break
 		}
@@ -362,7 +362,7 @@ func TestController_ChangePassword(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, token, _, _, _ := TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, _, _, _ = TestController.ChangePassword(context.Background(), token, "", "123456", "1")
@@ -375,11 +375,11 @@ func TestController_ChangePassword(t *testing.T) {
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "123456", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_WRONG_PASSWORD)
 
 	status, _, _, _, _ = TestController.Login(context.Background(), TestUserId, "1", "",
-		"", false)
+		"", false, "")
 	assert.Equal(t, status, userpb.UserStatus_US_SUCCESS)
 }
 

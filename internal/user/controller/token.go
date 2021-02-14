@@ -3,8 +3,10 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -26,6 +28,11 @@ type AuthInfo struct {
 	ExpiresAt        int64
 	ClientIP         string
 	CreateAt         int64
+	ParentSessionID  string
+	SessionID        string
+
+	ExpiresAtString string
+	CreateAtString  string
 }
 
 func (ai *AuthInfo) Valid() error {
@@ -41,133 +48,191 @@ func (tc *TokenClaims) Valid() error {
 	return nil
 }
 
-func (c *Controller) newSSOToken(ctx context.Context, u *AuthInfo) (string, error) {
-	ssoToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, u).SignedString([]byte(c.cfg.Token.Secret))
-	if err != nil {
-		c.logger.Errorf(ctx, "new sso token jwt failed: %v", err)
-		return "", err
+func (c *Controller) checkSSOJumpURL(ctx context.Context, ssoJumpURL string) (valid bool, err error) {
+	if ssoJumpURL == "" {
+		err = errors.New("no jump url")
+		loge.Error(ctx, err)
+		return
 	}
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		_, err = c.redis.Set(ctx, redisKeyForSSOToken(ssoToken), time.Now().String(), c.cfg.Token.SSOExpire).Result()
-	})
+	u, err := url.Parse(ssoJumpURL)
 	if err != nil {
-		c.logger.Errorf(ctx, "new sso token redis failed: %v", err)
-		return "", err
+		loge.Errorf(ctx, "parse url %v failed: %v", ssoJumpURL, err)
+		return
 	}
-	return ssoToken, nil
+	if u == nil || u.Host == "" {
+		err = errors.New("url or host is empty")
+		loge.Error(ctx, err)
+		return
+	}
+	if _, ok := c.cfg.WhiteListSSOJumpDomainMap[u.Host]; !ok {
+		return
+	}
+	valid = true
+	return
 }
 
-func (c *Controller) verifySSOToken(ctx context.Context, tokenString string) (*AuthInfo, error) {
-	var info AuthInfo
-
-	_, err := jwt.ParseWithClaims(tokenString, &info, func(token *jwt.Token) (interface{}, error) {
-		return []byte(c.cfg.Token.Secret), nil
-	})
-
+func (c *Controller) newSSOToken(ctx context.Context, parentSessionID string, u *AuthInfo, ssoJumpURL string) (string, error) {
+	ok, err := c.checkSSOJumpURL(ctx, ssoJumpURL)
 	if err != nil {
-		c.logger.Errorf(ctx, "verifySSOToken failed: %v", err)
-		return nil, err
+		return "", err
 	}
-
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		_, err = c.redis.Get(ctx, redisKeyForSSOToken(tokenString)).Result()
-	})
-	if err != nil {
-		c.logger.Errorf(ctx, "verifySSOToken get redis failed: %v", err)
-		return nil, err
+	if !ok {
+		return "", errors.New("invalid sso jump url")
 	}
-
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		_, err = c.redis.Del(ctx, redisKeyForSSOToken(tokenString)).Result()
-	})
-	if err != nil {
-		c.logger.Warnf(ctx, "verifySSOToken del redis failed: %v", err)
-	}
-
-	return &info, nil
+	sessionID := uuid.NewV4().String()
+	u.ParentSessionID = parentSessionID
+	return c.generateTokenEx(ctx, sessionID, redisKeyForSSOToken(u.UserID, sessionID), c.cfg.Token.Expire, u)
 }
 
-func (c *Controller) generateToken(ctx context.Context, u *AuthInfo) (string, error) {
+func (c *Controller) verifySSOToken(ctx context.Context, tokenString string) (authInfo *AuthInfo, err error) {
+	redisKey, authInfo, err := c.verifyTokenEx(ctx, redisKeyForSSOToken, tokenString)
+	if err != nil {
+		loge.Errorf(ctx, "verify token failed: %v", err)
+		return
+	}
+
+	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+		_, err = c.redis.Del(ctx, redisKey).Result()
+	})
+	if err != nil {
+		loge.Warnf(ctx, "set ttl of key %v failed: %v", redisKey, err)
+		err = nil
+	}
+	return
+}
+
+func (c *Controller) generateToken(ctx context.Context, u *AuthInfo) (sessionID string, token string, err error) {
+	sessionID = uuid.NewV4().String()
+	token, err = c.generateTokenEx(ctx, sessionID, redisKeyForSession(u.UserID, sessionID), c.cfg.Token.Expire, u)
+	if u.ParentSessionID != "" {
+		utils.DefRedisTimeoutOp(func(ctx context.Context) {
+			c.redis.SAdd(ctx, redisKeyForSessionIDParent(u.ParentSessionID), sessionID)
+		})
+	}
+	return
+}
+
+func (c *Controller) generateTokenEx(ctx context.Context, sessionID string, redisKey string, redisExpire time.Duration,
+	u *AuthInfo) (string, error) {
 	u.ClientIP = c.utils.GetPeerIp(ctx)
 	u.ExpiresAt = time.Now().Add(c.cfg.Token.Expire).Unix()
-
-	sessionId := uuid.NewV4().String()
-
-	key := redisKeyForSession(u.UserID, sessionId)
+	u.SessionID = sessionID
+	u.ExpiresAtString = time.Unix(u.ExpiresAt, 0).String()
+	u.CreateAtString = time.Unix(u.CreateAt, 0).String()
 
 	data, err := json.Marshal(u)
 	if err != nil {
+		loge.Errorf(ctx, "marshal auth info failed: %v", err)
 		return "", err
 	}
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		_, err = c.redis.Set(ctx, key, string(data), c.cfg.Token.Expire).Result()
+		_, err = c.redis.Set(ctx, redisKey, string(data), redisExpire).Result()
 	})
 	if err != nil {
+		loge.Errorf(ctx, "set redis for %v failed: %v", redisKey, err)
 		return "", err
 	}
 
 	tc := &TokenClaims{
 		UserId:    u.UserID,
-		SessionId: sessionId,
+		SessionId: sessionID,
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, tc).SignedString([]byte(c.cfg.Token.Secret))
 }
 
-func (c *Controller) verifyToken(ctx context.Context, tokenString string) (*AuthInfo, error) {
+func (c *Controller) verifyToken(ctx context.Context, tokenString string) (authInfo *AuthInfo, err error) {
 	if ai, ok := c.whiteListTokens[tokenString]; ok {
 		return ai, nil
 	}
 
+	redisKey, authInfo, err := c.verifyTokenEx(ctx, redisKeyForSession, tokenString)
+	if err != nil {
+		loge.Errorf(ctx, "verify token failed: %v", err)
+		return
+	}
+
+	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+		_, err = c.redis.Expire(ctx, redisKey, c.cfg.Token.Expire).Result()
+	})
+	if err != nil {
+		c.logger.Errorf(ctx, "set ttl of key %v failed: %v", redisKey, err)
+		err = nil
+	}
+	return
+}
+
+func (c *Controller) verifyTokenEx(ctx context.Context, fnRedisKey func(userId int64, sessionId string) string,
+	tokenString string) (redisKey string, authInfo *AuthInfo, err error) {
 	var tc TokenClaims
 
-	_, err := jwt.ParseWithClaims(tokenString, &tc, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(tokenString, &tc, func(token *jwt.Token) (interface{}, error) {
 		return []byte(c.cfg.Token.Secret), nil
 	})
 
 	if err != nil {
-		c.logger.Errorf(ctx, "verifyToken failed: %v", err)
-		return nil, err
+		c.logger.Errorf(ctx, "verifyTokenEx failed: %v", err)
+		return
 	}
 
-	key := redisKeyForSession(tc.UserId, tc.SessionId)
+	redisKey = fnRedisKey(tc.UserId, tc.SessionId)
+	authInfo, err = c.verifySessionID(ctx, tc.UserId, tc.SessionId, redisKey)
+	if err != nil {
+		loge.Errorf(ctx, "verify session id [%v-%v] failed: %v", tc.UserId, tc.SessionId, err)
+		return
+	}
+
+	if authInfo.ParentSessionID != "" {
+		_, err = c.verifySessionID(ctx, authInfo.UserID, authInfo.ParentSessionID, redisKeyForSession(authInfo.UserID, authInfo.ParentSessionID))
+		loge.Errorf(ctx, "verify parent session id %v failed: %v", authInfo.ParentSessionID)
+		return
+	}
+
+	return
+}
+
+func (c *Controller) verifySessionID(ctx context.Context, userID int64, sessionID, redisKey string) (authInfo *AuthInfo, err error) {
 	var data string
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		data, err = c.redis.Get(ctx, key).Result()
+		data, err = c.redis.Get(ctx, redisKey).Result()
 	})
 
 	if err != nil {
-		c.logger.Errorf(ctx, "get session failed: %v, %v", err, key)
-		return nil, err
+		c.logger.Errorf(ctx, "get session failed: %v, %v", err, redisKey)
+		return
 	}
 
-	authInfo := &AuthInfo{}
+	authInfo = &AuthInfo{}
 	err = json.Unmarshal([]byte(data), authInfo)
 	if err != nil {
 		c.logger.Errorf(ctx, "unmarshal user info failed: %v, %v", err, data)
-		return nil, err
+		return
+	}
+
+	if authInfo.UserID != userID {
+		err = fmt.Errorf("user id miss: %v, %v", authInfo.UserID, userID)
+		loge.Error(ctx, err)
+		return
+	}
+
+	if authInfo.SessionID != sessionID {
+		err = fmt.Errorf("session id miss: %v, %v", authInfo.SessionID, sessionID)
+		loge.Error(ctx, err)
+		return
 	}
 
 	if time.Now().Unix() > authInfo.ExpiresAt {
 		err = fmt.Errorf("token timeout: %v, now is %v", time.Unix(authInfo.ExpiresAt, 0), time.Now())
 		c.logger.Warnf(ctx, err.Error())
-		return nil, err
-	}
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
-		_, err = c.redis.Expire(ctx, key, c.cfg.Token.Expire).Result()
-	})
-	if err != nil {
-		c.logger.Errorf(ctx, "set ttl of key %v failed: %v", key, err)
-		err = nil
+		return
 	}
 
 	clientIP := c.utils.GetPeerIp(ctx)
 	if !c.compareIP(ctx, authInfo.ClientIP, clientIP) {
 		err = fmt.Errorf("ip miss: %v, now is %v", authInfo.ClientIP, clientIP)
 		c.logger.Warnf(ctx, err.Error())
-		return nil, err
+		return
 	}
-
-	return authInfo, nil
+	return
 }
 
 func (c *Controller) removeToken(ctx context.Context, tokenString string) error {
@@ -185,6 +250,31 @@ func (c *Controller) removeToken(ctx context.Context, tokenString string) error 
 	utils.DefRedisTimeoutOp(func(ctx context.Context) {
 		c.redis.Del(ctx, redisKeyForSession(tc.UserId, tc.SessionId))
 	})
+
+	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+		children, err := c.redis.SMembers(ctx, redisKeyForSessionIDParent(tc.SessionId)).Result()
+		if err != nil {
+			if err != redis.Nil {
+				loge.Errorf(ctx, "redis smembers %v failed: %v", tc.SessionId, err)
+			}
+			return
+		}
+		if len(children) <= 0 {
+			return
+		}
+		for _, sessionID := range children {
+			utils.DefRedisTimeoutOp(func(ctx context.Context) {
+				err = c.redis.Del(ctx, redisKeyForSession(tc.UserId, sessionID)).Err()
+				if err != nil {
+					loge.Errorf(ctx, "redis del %v failed: %v", redisKeyForSession(tc.UserId, tc.SessionId), err)
+				}
+			})
+		}
+		utils.DefRedisTimeoutOp(func(ctx context.Context) {
+			c.redis.Del(ctx, redisKeyForSessionIDParent(tc.SessionId))
+		})
+	})
+
 	return nil
 }
 

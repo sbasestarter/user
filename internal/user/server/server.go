@@ -9,13 +9,13 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
-	. "github.com/sbasestarter/user/internal/user/controller"
+	"github.com/sbasestarter/user/internal/user/controller"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
 	"github.com/sgostarter/librediscovery"
 )
 
 type UserServer struct {
-	controller *Controller
+	controller *controller.Controller
 }
 
 func NewUserServer(ctx context.Context, cfg *config.Config) *UserServer {
@@ -32,7 +32,7 @@ func NewUserServer(ctx context.Context, cfg *config.Config) *UserServer {
 		return nil
 	}
 	return &UserServer{
-		controller: NewController(cfg, loge.GetGlobalLogger(), dbToolset.GetRedis(), dbToolset.GetMySQL(),
+		controller: controller.NewController(cfg, loge.GetGlobalLogger(), dbToolset.GetRedis(), dbToolset.GetMySQL(),
 			factory.NewFactory(ctx, getter, cfg)),
 	}
 }
@@ -78,12 +78,12 @@ func (us *UserServer) TriggerAuth(ctx context.Context, req *userpb.TriggerAuthRe
 
 func (us *UserServer) Register(ctx context.Context, req *userpb.RegisterRequest) (*userpb.SignResponse, error) {
 	return us.makeSignResponse(us.controller.Register(ctx, req.User, req.CodeForVe, req.NewPassword,
-		req.AttachSsoToken)), nil
+		req.AttachSsoToken, req.SsoJumpUrl)), nil
 }
 
 func (us *UserServer) Login(ctx context.Context, req *userpb.LoginRequest) (*userpb.SignResponse, error) {
 	return us.makeSignResponse(us.controller.Login(ctx, req.User, req.Password, req.CodeForVe, req.CodeForGa,
-		req.AttachSsoToken)), nil
+		req.AttachSsoToken, req.SsoJumpUrl)), nil
 }
 
 func (us *UserServer) SSOLogin(ctx context.Context, req *userpb.SSOLoginRequest) (*userpb.SignResponse, error) {
@@ -121,7 +121,7 @@ func (us *UserServer) GoogleAuthSet(ctx context.Context, req *userpb.GoogleAuthS
 }
 
 func (us *UserServer) Profile(ctx context.Context, req *userpb.ProfileRequest) (*userpb.ProfileResponse, error) {
-	status, userInfo, ssoToken, err := us.controller.Profile(ctx, req.Token, req.AttachSsoToken)
+	status, userInfo, ssoToken, err := us.controller.Profile(ctx, req.Token, req.AttachSsoToken, req.SsoJumpUrl)
 	return &userpb.ProfileResponse{
 		Status:   us.makeStatus(status, err),
 		Info:     userInfo,
