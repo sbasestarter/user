@@ -5,12 +5,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jiuzhou-zhao/go-fundamental/dbtoolset"
-	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
+	"github.com/sgostarter/i/l"
 	"github.com/sgostarter/librediscovery"
 )
 
@@ -18,22 +17,21 @@ type UserServer struct {
 	controller *controller.Controller
 }
 
-func NewUserServer(ctx context.Context, cfg *config.Config) *UserServer {
+func NewUserServer(ctx context.Context, cfg *config.Config, logger l.Wrapper) *UserServer {
+	if logger == nil {
+		logger = l.NewNopLoggerWrapper()
+	}
+
 	rand.Seed(time.Now().UnixNano() + 987543)
-	dbToolset, err := dbtoolset.NewDBToolset(ctx, &cfg.DBConfig, loge.GetGlobalLogger().GetLogger())
+	getter, err := librediscovery.NewGetter(ctx, logger, cfg.RedisCli, "", 5*time.Minute, time.Minute)
 	if err != nil {
-		loge.Fatalf(ctx, "init db toolset failed: %v", err)
+		logger.Fatalf("new discovery getter failed: %v", err)
 		return nil
 	}
-	getter, err := librediscovery.NewGetter(ctx, loge.GetGlobalLogger().GetLogger(), dbToolset.GetRedis(),
-		"", 5*time.Minute, time.Minute)
-	if err != nil {
-		loge.Fatalf(ctx, "new discovery getter failed: %v", err)
-		return nil
-	}
+
 	return &UserServer{
-		controller: controller.NewController(cfg, loge.GetGlobalLogger(), dbToolset.GetRedis(), dbToolset.GetMySQL(),
-			factory.NewFactory(ctx, getter, cfg)),
+		controller: controller.NewController(cfg, logger, cfg.RedisCli, cfg.MySqlCli,
+			factory.NewFactory(ctx, getter, cfg, logger)),
 	}
 }
 

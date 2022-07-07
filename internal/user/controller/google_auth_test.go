@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jiuzhou-zhao/go-fundamental/authenticator"
-	"github.com/jiuzhou-zhao/go-fundamental/utils"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	"github.com/sbasestarter/user/internal/utils"
+	"github.com/sgostarter/libeasygo/authenticator"
 	"github.com/stretchr/testify/assert"
 )
 

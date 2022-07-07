@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/jiuzhou-zhao/go-fundamental/discovery"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/helper"
+	"github.com/sgostarter/i/l"
+	"github.com/sgostarter/librediscovery/discovery"
 )
 
 type Utils interface {
@@ -25,11 +26,12 @@ type Factory interface {
 	GetHttpToken() HttpToken
 }
 
-func NewFactory(ctx context.Context, getter discovery.Getter, cfg *config.Config) Factory {
+func NewFactory(ctx context.Context, getter discovery.Getter, cfg *config.Config, logger l.Wrapper) Factory {
 	return &factoryImpl{
 		ctx:    ctx,
 		getter: getter,
 		cfg:    cfg,
+		logger: logger,
 	}
 }
 
@@ -37,10 +39,11 @@ type factoryImpl struct {
 	ctx    context.Context
 	getter discovery.Getter
 	cfg    *config.Config
+	logger l.Wrapper
 }
 
 func (impl *factoryImpl) GetGRPCClientFactory() GRPCClientFactory {
-	return NewGRPCClientFactory(impl.ctx, impl.getter, impl.cfg)
+	return NewGRPCClientFactory(impl.ctx, impl.getter, impl.cfg, impl.logger)
 }
 
 func (impl *factoryImpl) GetUtils() Utils {

@@ -9,8 +9,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/go-xorm/xorm"
-	"github.com/jiuzhou-zhao/go-fundamental/loge"
-	"github.com/jiuzhou-zhao/go-fundamental/utils"
 	"github.com/sbasestarter/db-orm/go/user"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
@@ -18,11 +16,13 @@ import (
 	"github.com/sbasestarter/user/internal/user/controller/factory"
 	"github.com/sbasestarter/user/internal/user/controller/plugins"
 	"github.com/sbasestarter/user/internal/user/model"
+	"github.com/sgostarter/i/l"
+	"github.com/sgostarter/libeasygo/helper"
 )
 
 type Controller struct {
 	cfg             *config.Config
-	logger          *loge.Logger
+	logger          l.WrapperWithContext
 	redis           *redis.Client
 	m               *model.Model
 	fileCli         filecenterpb.FileCenterClient
@@ -33,29 +33,35 @@ type Controller struct {
 	whiteListTokens map[string]*AuthInfo
 }
 
-func NewController(cfg *config.Config, logger *loge.Logger, redis *redis.Client, db *xorm.Engine, allFactory factory.Factory) *Controller {
+func NewController(cfg *config.Config, logger l.Wrapper, redis *redis.Client, db *xorm.Engine, allFactory factory.Factory) *Controller {
+	if logger == nil {
+		logger = l.NewNopLoggerWrapper()
+	}
+
+	loggerWithContext := logger.GetWrapperWithContext()
+
 	uUtils := allFactory.GetUtils()
 	cliFactory := allFactory.GetGRPCClientFactory()
 	whiteListTokens := make(map[string]*AuthInfo)
 	for _, token := range cfg.WhiteListTokens {
 		decodeBytes, err := base64.StdEncoding.DecodeString(token)
 		if err != nil {
-			loge.Fatalf(context.Background(), "parse white list token failed:", err, token)
+			loggerWithContext.Fatalf(context.Background(), "parse white list token failed:", err, token)
 		}
 		var ai AuthInfo
 		err = json.Unmarshal(decodeBytes, &ai)
 		if err != nil {
-			loge.Fatalf(context.Background(), "parse white list token failed:", err, token)
+			loggerWithContext.Fatalf(context.Background(), "parse white list token failed:", err, token)
 		}
 		whiteListTokens[token] = &ai
 	}
 	return &Controller{
 		cfg:             cfg,
-		logger:          logger,
+		logger:          loggerWithContext.WithFields(l.StringField(l.ClsKey, "Controller")),
 		redis:           redis,
 		m:               model.NewModel(db, uUtils),
 		fileCli:         cliFactory.GetFileCenterClient(),
-		authPlugins:     plugins.NewPlugins(cfg, cliFactory),
+		authPlugins:     plugins.NewPlugins(cfg, cliFactory, logger),
 		cliFactory:      cliFactory,
 		utils:           uUtils,
 		httpToken:       allFactory.GetHttpToken(),
@@ -78,7 +84,7 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 	// check freq
 	key := redisKeyForVeAuth(redisUsername(user), keyCatAuthLock)
 
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+	helper.DoWithTimeout(context.Background(), time.Second, func(ctx context.Context) {
 		_, err = c.redis.Get(ctx, key).Result()
 	})
 
@@ -90,7 +96,7 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 		return userpb.UserStatus_US_VERIFY_TOO_QUICK, err
 	}
 
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+	helper.DoWithTimeout(context.Background(), time.Second, func(ctx context.Context) {
 		_, err = c.redis.SetNX(ctx, key, time.Now().Format("20060102.150405.000"),
 			c.authPlugins.SendLockTimeDuration(ctx, user)).Result()
 	})
@@ -108,9 +114,10 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 	// save verify code
 	key = redisKeyForVeAuth(redisUsername(user), keyCatAuthCode)
 
-	utils.DefRedisTimeoutOp(func(ctx context.Context) {
+	helper.DoWithTimeout(context.Background(), time.Second, func(ctx context.Context) {
 		_, err = c.redis.Set(ctx, key, code, c.authPlugins.ValidDelayDuration(ctx, user)).Result()
 	})
+
 	if err != nil {
 		c.logger.Errorf(ctx, "save verify code error: %v", err)
 		return userpb.UserStatus_US_INTERNAL_ERROR, nil
@@ -199,9 +206,9 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 	var nickName string
 	status, fixedUser, nickName, avatar := c.authPlugins.TryAutoLogin(ctx, userID, codeForVe)
 	if status != userpb.UserStatus_US_SUCCESS {
-		loge.Warnf(ctx, "auto login failed: %v", status)
+		c.logger.Warnf(ctx, "auto login failed: %v", status)
 	} else {
-		loge.Info(ctx, "auto login success")
+		c.logger.Info(ctx, "auto login success")
 		userID = fixedUser
 		var userSource *user.UserSource
 		userSource, err = c.m.MustUserSource(userID.UserName, userID.UserVe)

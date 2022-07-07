@@ -7,27 +7,33 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
+	"github.com/sgostarter/i/l"
 )
 
 type Plugins struct {
 	cfg             *config.Config
 	authentications map[string]Plugin
+	logger          l.WrapperWithContext
 }
 
-func NewPlugins(cfg *config.Config, cliFactory factory.GRPCClientFactory) *Plugins {
+func NewPlugins(cfg *config.Config, cliFactory factory.GRPCClientFactory, logger l.Wrapper) *Plugins {
+	if logger == nil {
+		logger = l.NewNopLoggerWrapper()
+	}
+
 	plugins := &Plugins{
 		cfg:             cfg,
 		authentications: make(map[string]Plugin),
+		logger:          logger.WithFields(l.StringField(l.ClsKey, "Plugins")).GetWrapperWithContext(),
 	}
 
 	plugins.authentications[userpb.VerificationEquipment_VEMail.String()] =
-		NewEmailAuthentication(&cfg.EmailConfig, cliFactory)
+		NewEmailAuthentication(&cfg.EmailConfig, cliFactory, logger)
 	plugins.authentications[userpb.VerificationEquipment_VEPhone.String()] =
-		NewPhoneAuthentication(&cfg.PhoneConfig, cliFactory)
+		NewPhoneAuthentication(&cfg.PhoneConfig, cliFactory, logger)
 
 	return plugins
 }
@@ -60,7 +66,7 @@ func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status u
 	if user == nil {
 		status = userpb.UserStatus_US_FAILED
 		err = fmt.Errorf("invalid user: %+v", user)
-		loge.Error(ctx, err)
+		ps.logger.Error(ctx, err)
 		return
 	}
 
@@ -127,7 +133,7 @@ func (ps *Plugins) GetNickName(ctx context.Context, user *userpb.UserId) (status
 func (ps *Plugins) TryAutoLogin(ctx context.Context, user *userpb.UserId, token string) (
 	status userpb.UserStatus, userFixed *userpb.UserId, nickName, avatar string) {
 	if user.UserVe == userpb.VerificationEquipment_VEWxMinA.String() {
-		loge.Warn(ctx, "WxMinA not implement")
+		ps.logger.Warn(ctx, "WxMinA not implement")
 		status = userpb.UserStatus_US_NOT_IMPLEMENT
 		return
 	}

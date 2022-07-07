@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/jiuzhou-zhao/go-fundamental/utils"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	"github.com/sbasestarter/user/internal/utils"
 )
 
 func (c *Controller) checkVe(user *userpb.UserId, code string) (userpb.UserStatus, error) {

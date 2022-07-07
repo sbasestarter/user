@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/caixw/lib.go/validation/validator"
-	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
+	"github.com/sgostarter/i/l"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -20,12 +20,18 @@ import (
 type emailAuthentication struct {
 	cfg        *config.VEConfig
 	postClient postsbspb.PostSBSServiceClient
+	logger     l.WrapperWithContext
 }
 
-func NewEmailAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientFactory) Plugin {
+func NewEmailAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientFactory, logger l.Wrapper) Plugin {
+	if logger == nil {
+		logger = l.NewNopLoggerWrapper()
+	}
+
 	return &emailAuthentication{
 		cfg:        cfg,
 		postClient: cliFactory.GetPostCenterClient(),
+		logger:     logger.WithFields(l.StringField(l.ClsKey, "emailAuthentication")).GetWrapperWithContext(),
 	}
 }
 
@@ -33,7 +39,7 @@ func (ea *emailAuthentication) FixUserId(ctx context.Context, user *userpb.UserI
 	switch user.UserVe {
 	case userpb.VerificationEquipment_VEMail.String():
 		if !validator.IsEmail(user.UserName) {
-			loge.Errorf(ctx, "unknown email format: %v", user.UserName)
+			ea.logger.Errorf(ctx, "unknown email format: %v", user.UserName)
 			return nil, true, errors.New("invalid email format")
 		}
 		return user, true, nil
@@ -69,7 +75,7 @@ func (ea *emailAuthentication) sendEmail(ctx context.Context, purpose userpb.Tri
 		purposeType = postsbspb.PostPurposeType_PostPurposeResetPassword
 	default:
 		err := fmt.Errorf("unknown purpose %v", purposeType)
-		loge.Error(ctx, err)
+		ea.logger.Error(ctx, err)
 		return err
 	}
 
@@ -96,11 +102,11 @@ func (ea *emailAuthentication) sendEmail(ctx context.Context, purpose userpb.Tri
 func (ea *emailAuthentication) makeMaskSafeMail(ctx context.Context, mail string) string {
 	mailParts := strings.Split(mail, "@")
 	if len(mailParts) != 2 {
-		loge.Errorf(ctx, "invalid mail: %v", mail)
+		ea.logger.Errorf(ctx, "invalid mail: %v", mail)
 		return ""
 	}
 	if len(mailParts[0]) <= 0 {
-		loge.Errorf(ctx, "invalid mail: %v", mail)
+		ea.logger.Errorf(ctx, "invalid mail: %v", mail)
 		return ""
 	}
 	if len(mailParts[0]) >= 4 {

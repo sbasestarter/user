@@ -2,7 +2,8 @@ package helper
 
 import (
 	"context"
-	"github.com/jiuzhou-zhao/go-fundamental/iputils"
+
+	"github.com/sgostarter/libservicetoolset/grpce"
 )
 
 type UtilsImpl struct{}
@@ -16,5 +17,5 @@ func (u *UtilsImpl) RandomString(n int, allowedChars ...[]rune) string {
 }
 
 func (u *UtilsImpl) GetPeerIp(ctx context.Context) string {
-	return iputils.GrpcGetRealIP(ctx)
+	return grpce.GrpcGetRealIP(ctx)
 }

@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
+	"github.com/sgostarter/i/l"
 	"github.com/ttacon/libphonenumber"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,12 +19,18 @@ import (
 type phoneAuthentication struct {
 	cfg        *config.VEConfig
 	postClient postsbspb.PostSBSServiceClient
+	logger     l.WrapperWithContext
 }
 
-func NewPhoneAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientFactory) Plugin {
+func NewPhoneAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientFactory, logger l.Wrapper) Plugin {
+	if logger == nil {
+		logger = l.NewNopLoggerWrapper()
+	}
+
 	return &phoneAuthentication{
 		cfg:        cfg,
 		postClient: cliFactory.GetPostCenterClient(),
+		logger:     logger.WithFields(l.StringField(l.ClsKey, "phoneAuthentication")).GetWrapperWithContext(),
 	}
 }
 
@@ -64,7 +70,7 @@ func (pa *phoneAuthentication) TriggerAuthentication(ctx context.Context, userNa
 		purposeType = postsbspb.PostPurposeType_PostPurposeResetPassword
 	default:
 		err := fmt.Errorf("unknown purpose %v", purposeType)
-		loge.Error(ctx, err)
+		pa.logger.Error(ctx, err)
 		return err
 	}
 
@@ -114,13 +120,13 @@ func (pa *phoneAuthentication) fixPhone(ctx context.Context, phone string) (stri
 	}
 	num, err := libphonenumber.Parse(phone, "")
 	if err != nil {
-		loge.Errorf(ctx, "fixPhoneWithContext %v failed: %v", phone, err)
+		pa.logger.Errorf(ctx, "fixPhoneWithContext %v failed: %v", phone, err)
 		return "", err
 	}
 
 	res := libphonenumber.IsPossibleNumberWithReason(num)
 	if res != libphonenumber.IS_POSSIBLE {
-		loge.Errorf(ctx, "phone number impossible: %#v len:%v %v", phone, len(phone), res)
+		pa.logger.Errorf(ctx, "phone number impossible: %#v len:%v %v", phone, len(phone), res)
 	}
 
 	region := libphonenumber.GetRegionCodeForNumber(num)
@@ -130,7 +136,7 @@ func (pa *phoneAuthentication) fixPhone(ctx context.Context, phone string) (stri
 	if !valid {
 		phoneType := libphonenumber.GetNumberType(num)
 		err = fmt.Errorf("phone type: %v", phoneType)
-		loge.Infof(ctx, err.Error())
+		pa.logger.Infof(ctx, err.Error())
 		return "", err
 	}
 
