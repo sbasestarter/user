@@ -20,7 +20,7 @@ const (
 )
 
 type GRPCClientFactory interface {
-	GetFileCenterClient() filecenterpb.FileCenterClient
+	GetFileCenterClient() filecenterpb.FileServiceClient
 	GetPostCenterClient() postsbspb.PostSBSServiceClient
 }
 
@@ -78,8 +78,8 @@ func NewGRPCClientFactory(ctx context.Context, getter discovery.Getter, cfg *con
 	}
 }
 
-func (impl *gRPCClientFactoryImpl) GetFileCenterClient() filecenterpb.FileCenterClient {
-	return filecenterpb.NewFileCenterClient(impl.fileCenterConn)
+func (impl *gRPCClientFactoryImpl) GetFileCenterClient() filecenterpb.FileServiceClient {
+	return filecenterpb.NewFileServiceClient(impl.fileCenterConn)
 }
 
 func (impl *gRPCClientFactoryImpl) GetPostCenterClient() postsbspb.PostSBSServiceClient {

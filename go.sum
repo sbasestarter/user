@@ -450,14 +450,10 @@ github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
-github.com/sbasestarter/db-orm v0.0.0-20210207070317-7765e0d185ff h1:j87jrfqf1RxP7iLRLU+5DGwHoBk1MACtH/fZX6J4cKI=
-github.com/sbasestarter/db-orm v0.0.0-20210207070317-7765e0d185ff/go.mod h1:/0XkbgdzraWF71p4A7fzvR8p3RIwqQ8eytNyK2H67eQ=
 github.com/sbasestarter/db-orm v0.0.0-20220714065752-c3a7a5a5d4b4 h1:9XFalj1GQpCIBS9CP7jK4hUb5KTckecLduTMYyh9e68=
 github.com/sbasestarter/db-orm v0.0.0-20220714065752-c3a7a5a5d4b4/go.mod h1:/0XkbgdzraWF71p4A7fzvR8p3RIwqQ8eytNyK2H67eQ=
-github.com/sbasestarter/proto-repo v0.0.5-0.20210419054605-3a7a0c86d74b h1:y6UcT/QM8HDT4U+fQXqCbnprNwdAUYo9zphNF5mt9Mk=
-github.com/sbasestarter/proto-repo v0.0.5-0.20210419054605-3a7a0c86d74b/go.mod h1:Sf2ll2UO3Q7VZufii0EsnPaesOQTUMKVXcZr6gnd2O0=
-github.com/sbasestarter/proto-repo v0.0.6 h1:4z1pxxU/VnGGa693AiEqWPekE6zaN6EzCKHzDek/GO0=
-github.com/sbasestarter/proto-repo v0.0.6/go.mod h1:Sf2ll2UO3Q7VZufii0EsnPaesOQTUMKVXcZr6gnd2O0=
+github.com/sbasestarter/proto-repo v0.0.8 h1:Y9OQpjkiOujw/ddC2P7o6IUQpIS3nvmj4gzs4ojBjkA=
+github.com/sbasestarter/proto-repo v0.0.8/go.mod h1:Sf2ll2UO3Q7VZufii0EsnPaesOQTUMKVXcZr6gnd2O0=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/sgostarter/i v0.1.6/go.mod h1:buUUS9rtMjKmQhYNKxiM+brhFX7jLzZKv6AuZlHCgGk=
 github.com/sgostarter/i v0.1.11/go.mod h1:buUUS9rtMjKmQhYNKxiM+brhFX7jLzZKv6AuZlHCgGk=

@@ -25,7 +25,7 @@ type Controller struct {
 	logger          l.WrapperWithContext
 	redis           *redis.Client
 	m               *model.Model
-	fileCli         filecenterpb.FileCenterClient
+	fileCli         filecenterpb.FileServiceClient
 	authPlugins     *plugins.Plugins
 	cliFactory      factory.GRPCClientFactory
 	utils           factory.Utils

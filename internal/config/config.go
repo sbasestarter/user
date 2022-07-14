@@ -94,7 +94,7 @@ func (cfg *Config) fixConfig() {
 	}
 
 	if cfg.GoogleAuthenticator.KeyExpire <= 0 {
-		cfg.GoogleAuthenticator.KeyExpire = time.Minute
+		cfg.GoogleAuthenticator.KeyExpire = 5 * time.Minute
 	}
 
 	if cfg.GoogleAuthenticator.TokenExpire <= 0 {
