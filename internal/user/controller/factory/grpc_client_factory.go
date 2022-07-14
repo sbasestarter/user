@@ -3,8 +3,8 @@ package factory
 import (
 	"context"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
-	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sgostarter/i/l"
 	"github.com/sgostarter/librediscovery/discovery"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	gRpcSchema = "grpce"
+	gRPCSchema = "grpce"
 
 	serverNamePostKey       = "post"
 	serverNameFileCenterKey = "file-center"
@@ -36,7 +36,7 @@ func NewGRPCClientFactory(ctx context.Context, getter discovery.Getter, cfg *con
 
 	err := clienttoolset.RegisterSchemas(ctx, &clienttoolset.RegisterSchemasConfig{
 		Getter:  getter,
-		Schemas: []string{gRpcSchema},
+		Schemas: []string{gRPCSchema},
 	}, logger)
 	if err != nil {
 		logger.Fatalf("register schema failed: %v", err)
@@ -58,14 +58,14 @@ func NewGRPCClientFactory(ctx context.Context, getter discovery.Getter, cfg *con
 		return nil
 	}
 
-	postConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, postServerName, &cfg.GRpcClientConfigTpl, nil)
+	postConn, err := clienttoolset.DialGRpcServerByName(gRPCSchema, postServerName, &cfg.GRpcClientConfigTpl, nil)
 	if err != nil {
 		logger.Fatalf("dial %v failed: %v", postServerName, err)
 
 		return nil
 	}
 
-	fileCenterConn, err := clienttoolset.DialGRpcServerByName(gRpcSchema, fileCenterServerName, &cfg.GRpcClientConfigTpl, nil)
+	fileCenterConn, err := clienttoolset.DialGRpcServerByName(gRPCSchema, fileCenterServerName, &cfg.GRpcClientConfigTpl, nil)
 	if err != nil {
 		logger.Fatalf("dial %v failed: %v", fileCenterServerName, err)
 

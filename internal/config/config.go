@@ -4,18 +4,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-	"github.com/go-xorm/xorm"
 	"github.com/sgostarter/libconfig"
-	"github.com/sgostarter/libeasygo/stg"
 	"github.com/sgostarter/libservicetoolset/clienttoolset"
+	"github.com/sgostarter/libservicetoolset/dbtoolset"
 	"github.com/sgostarter/libservicetoolset/servicetoolset"
 )
 
 type Config struct {
 	GRpcServerConfig          servicetoolset.GRPCServerConfig `yaml:"grpc_server_config" json:"grpc_server_config"`
 	GRpcClientConfigTpl       clienttoolset.GRPCClientConfig  `yaml:"grpc_client_config_tpl" json:"grpc_client_config_tpl"`
-	GoogleAuthenticator       googleAuthenticatorOption       `json:"google_authenticator" json:"google_authenticator"`
+	DbConfig                  dbtoolset.Config                `yaml:"db_config"`
+	GoogleAuthenticator       googleAuthenticatorOption       `yaml:"google_authenticator" json:"google_authenticator"`
 	DefaultUserAvatar         string                          `yaml:"default_user_avatar" json:"default_user_avatar"`
 	PwdSecret                 string                          `yaml:"pwd_secret" json:"pwd_secret"`
 	Token                     tokenConfig                     `yaml:"token" json:"token"`
@@ -29,10 +28,7 @@ type Config struct {
 
 	DiscoveryServerNames map[string]string `yaml:"discovery_server_names" json:"discovery_server_names"`
 
-	RedisDSN string        `yaml:"redis_dsn" json:"redis_dsn"`
-	RedisCli *redis.Client `yaml:"-" json:"-" ignored:"true"`
-	MySqlDSN string        `yaml:"my_sql_dsn" json:"my_sql_dsn"`
-	MySqlCli *xorm.Engine  `yaml:"-" json:"-" ignored:"true"`
+	DbToolset *dbtoolset.Toolset `yaml:"-" ignored:"true"`
 }
 
 type VEConfig struct {
@@ -41,7 +37,7 @@ type VEConfig struct {
 }
 
 type UserAuthentication struct {
-	SupportFixUserId bool          `yaml:"support_fix_user_id"`
+	SupportFixUserID bool          `yaml:"support_fix_user_id"`
 	SupportAutoLogin bool          `yaml:"support_auto_login"`
 	CodeValid        time.Duration `yaml:"code_valid"`
 	SendLock         time.Duration `yaml:"send_lock"`
@@ -68,30 +64,39 @@ func (cfg *Config) fixConfig() {
 			cfg.GRpcServerConfig.TLSConfig = nil
 		}
 	}
+
 	if cfg.GRpcClientConfigTpl.TLSConfig != nil {
 		if len(cfg.GRpcClientConfigTpl.TLSConfig.Key) == 0 {
 			cfg.GRpcClientConfigTpl.TLSConfig = nil
 		}
 	}
+
 	if cfg.EmailConfig.SendDelayDuration <= 0 {
 		cfg.EmailConfig.SendDelayDuration = time.Second
 	}
+
 	if cfg.EmailConfig.ValidDelayDuration <= 0 {
 		cfg.EmailConfig.ValidDelayDuration = time.Minute
 	}
+
 	if cfg.PhoneConfig.SendDelayDuration <= 0 {
 		cfg.PhoneConfig.SendDelayDuration = time.Second
 	}
+
 	if cfg.PhoneConfig.ValidDelayDuration <= 0 {
 		cfg.PhoneConfig.ValidDelayDuration = time.Minute
 	}
+
 	cfg.WhiteListSSOJumpDomainMap = make(map[string]interface{})
+
 	for _, s := range cfg.WhiteListSSOJumpDomain {
 		cfg.WhiteListSSOJumpDomainMap[s] = true
 	}
+
 	if cfg.GoogleAuthenticator.KeyExpire <= 0 {
 		cfg.GoogleAuthenticator.KeyExpire = time.Minute
 	}
+
 	if cfg.GoogleAuthenticator.TokenExpire <= 0 {
 		cfg.GoogleAuthenticator.TokenExpire = 5 * time.Minute
 	}
@@ -99,20 +104,6 @@ func (cfg *Config) fixConfig() {
 
 func (cfg *Config) init() {
 	cfg.fixConfig()
-
-	redisCli, err := stg.InitRedis(cfg.RedisDSN)
-	if err != nil {
-		panic(err)
-	}
-
-	cfg.RedisCli = redisCli
-
-	mysqlCli, err := xorm.NewEngine("mysql", cfg.MySqlDSN)
-	if err != nil {
-		panic(err)
-	}
-
-	cfg.MySqlCli = mysqlCli
 }
 
 var (

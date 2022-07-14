@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/server"
 	"github.com/sgostarter/i/l"
 	"github.com/sgostarter/liblogrus"
 	"github.com/sgostarter/librediscovery"
+	"github.com/sgostarter/libservicetoolset/dbtoolset"
 	"github.com/sgostarter/libservicetoolset/servicetoolset"
 	"google.golang.org/grpc"
 )
@@ -25,13 +26,15 @@ func main() {
 	logger.GetLogger().SetLevel(l.LevelDebug)
 
 	cfg := config.Get()
+	cfg.DbToolset = dbtoolset.NewToolset(&cfg.DbConfig, logger)
 
 	var err error
 
-	cfg.GRpcServerConfig.DiscoveryExConfig.Setter, err = librediscovery.NewSetter(ctx, logger, cfg.RedisCli,
+	cfg.GRpcServerConfig.DiscoveryExConfig.Setter, err = librediscovery.NewSetter(ctx, logger, cfg.DbToolset.GetRedis(),
 		"", time.Minute)
 	if err != nil {
 		logger.Fatalf("create rediscovery setter failed: %v", err)
+
 		return
 	}
 
@@ -42,5 +45,6 @@ func main() {
 
 		return nil
 	})
+
 	serviceToolset.Wait()
 }

@@ -16,7 +16,7 @@ type httpTokenImpl struct {
 	cookieMaxAge int
 }
 
-func NewHttpToken(domain string, cookieMaxAge int) HttpToken {
+func NewHTTPToken(domain string, cookieMaxAge int) HTTPToken {
 	return &httpTokenImpl{
 		domain:       domain,
 		cookieMaxAge: cookieMaxAge,
@@ -26,6 +26,7 @@ func NewHttpToken(domain string, cookieMaxAge int) HttpToken {
 func (impl *httpTokenImpl) SetUserTokenCookie(ctx context.Context, token string) error {
 	domain := impl.domainFromContext(ctx)
 	domain = strings.Trim(domain, " \r\n\t")
+
 	if domain == "" {
 		domain = impl.domain
 	}
@@ -37,12 +38,14 @@ func (impl *httpTokenImpl) SetUserTokenCookie(ctx context.Context, token string)
 		Path:     "/",
 		HttpOnly: true,
 		MaxAge:   impl.cookieMaxAge}
+
 	return grpc.SendHeader(ctx, metadata.Pairs("Set-Cookie", cookie.String()))
 }
 
 func (impl *httpTokenImpl) UnsetUserTokenCookie(ctx context.Context, token string) error {
 	domain := impl.domainFromContext(ctx)
 	domain = strings.Trim(domain, " \r\n\t")
+
 	if domain == "" {
 		domain = impl.domain
 	}
@@ -54,11 +57,13 @@ func (impl *httpTokenImpl) UnsetUserTokenCookie(ctx context.Context, token strin
 		Path:     "/",
 		HttpOnly: true,
 		Expires:  time.Now().AddDate(-1, 0, 0)}
+
 	return grpc.SendHeader(ctx, metadata.Pairs("Set-Cookie", cookie.String()))
 }
 
 func (impl *httpTokenImpl) domainFromContext(ctx context.Context) string {
-	domain := ""
+	var domain string
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
 		values := md.Get("origin")
@@ -66,13 +71,16 @@ func (impl *httpTokenImpl) domainFromContext(ctx context.Context) string {
 			domain = values[0]
 		}
 	}
+
 	idx := strings.Index(domain, "://")
 	if idx != -1 {
 		domain = domain[idx+3:]
 	}
+
 	idx = strings.Index(domain, ":")
 	if idx != -1 {
 		domain = domain[0:idx]
 	}
+
 	return domain
 }

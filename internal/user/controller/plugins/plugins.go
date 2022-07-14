@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
 	"github.com/sgostarter/i/l"
+	"github.com/sgostarter/libeasygo/cuserror"
 )
 
 type Plugins struct {
@@ -47,6 +48,7 @@ func (ps *Plugins) pluginDo(user *userpb.UserId, fn func(plugin Plugin)) {
 func (ps *Plugins) pluginsDo(user *userpb.UserId, fn func(plugin Plugin) bool) {
 	if plugin, ok := ps.authentications[user.UserVe]; ok {
 		fn(plugin)
+
 		return
 	}
 
@@ -58,19 +60,22 @@ func (ps *Plugins) pluginsDo(user *userpb.UserId, fn func(plugin Plugin) bool) {
 	}
 }
 
-func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus,
+func (ps *Plugins) FixUserID(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus,
 	userFixed *userpb.UserId, err error) {
-
 	status = userpb.UserStatus_US_DONT_SUPPORT
 
 	if user == nil {
 		status = userpb.UserStatus_US_FAILED
-		err = fmt.Errorf("invalid user: %+v", user)
+
+		err = cuserror.NewWithErrorMsg(fmt.Sprintf("invalid user: %+v", user))
+
 		ps.logger.Error(ctx, err)
+
 		return
 	}
 
-	if v, err := strconv.Atoi(user.UserVe); err == nil {
+	// nolint: gosec
+	if v, errE := strconv.Atoi(user.UserVe); errE == nil {
 		if vs, ok := userpb.VerificationEquipment_name[int32(v)]; ok {
 			user.UserVe = vs
 			userFixed = user
@@ -78,10 +83,11 @@ func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status u
 	}
 
 	ps.pluginsDo(user, func(plugin Plugin) bool {
-		userResp, ok, errRet := plugin.FixUserId(ctx, user)
+		userResp, ok, errRet := plugin.FixUserID(ctx, user)
 		if !ok {
 			return false
 		}
+
 		if errRet != nil {
 			err = errRet
 			status = userpb.UserStatus_US_BAD_INPUT
@@ -89,6 +95,7 @@ func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status u
 			status = userpb.UserStatus_US_SUCCESS
 			userFixed = userResp
 		}
+
 		return true
 	})
 
@@ -97,7 +104,6 @@ func (ps *Plugins) FixUserId(ctx context.Context, user *userpb.UserId) (status u
 
 func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserId, purpose userpb.TriggerAuthPurpose) (
 	status userpb.UserStatus, code string, err error) {
-
 	status = userpb.UserStatus_US_DONT_SUPPORT
 
 	newCode := ps.newVerifyCode()
@@ -111,12 +117,14 @@ func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserI
 			code = newCode
 		}
 	})
+
 	return
 }
 
 func (ps *Plugins) GetNickName(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus, nickName string) {
 	if user == nil {
 		status = userpb.UserStatus_US_FAILED
+
 		return
 	}
 
@@ -134,10 +142,14 @@ func (ps *Plugins) TryAutoLogin(ctx context.Context, user *userpb.UserId, token 
 	status userpb.UserStatus, userFixed *userpb.UserId, nickName, avatar string) {
 	if user.UserVe == userpb.VerificationEquipment_VEWxMinA.String() {
 		ps.logger.Warn(ctx, "WxMinA not implement")
+
 		status = userpb.UserStatus_US_NOT_IMPLEMENT
+
 		return
 	}
+
 	status = userpb.UserStatus_US_DONT_SUPPORT
+
 	return
 }
 
@@ -145,6 +157,7 @@ func (ps *Plugins) SendLockTimeDuration(_ context.Context, user *userpb.UserId) 
 	ps.pluginDo(user, func(plugin Plugin) {
 		duration = plugin.GetSendLockTimeDuration()
 	})
+
 	return
 }
 
@@ -152,6 +165,7 @@ func (ps *Plugins) ValidDelayDuration(ctx context.Context, user *userpb.UserId) 
 	ps.pluginDo(user, func(plugin Plugin) {
 		duration = plugin.GetValidDelayDuration()
 	})
+
 	return
 }
 
@@ -159,5 +173,7 @@ func (ps *Plugins) newVerifyCode() string {
 	if ps.cfg.DummyVerifyCode != "" {
 		return ps.cfg.DummyVerifyCode
 	}
+
+	// nolint: gosec
 	return fmt.Sprintf("%v", rand.Intn(900000)+100000)
 }

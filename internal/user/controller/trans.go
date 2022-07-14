@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/sbasestarter/db-orm/go/user"
-	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/user/model"
 )
 
@@ -26,6 +26,7 @@ func (c *Controller) authInfo2PbUserInfo(aInfo *AuthInfo, gaEnabled bool) *userp
 			flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabledForce
 		}
 	}
+
 	return &userpb.UserInfo{
 		NickName:  aInfo.NickName,
 		Avatar:    c.filterUserAvatar(aInfo.Avatar),
@@ -47,10 +48,12 @@ func (c *Controller) userInfo2PbUserInfo(aInfo *user.UserInfo, gaEnabled bool) *
 	flagGa := userpb.GoogleAuthGlobalFlag_GoogleAuthNone
 	if c.cfg.GoogleAuthenticator.Enable {
 		flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabled
+
 		if c.cfg.GoogleAuthenticator.Force {
 			flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabledForce
 		}
 	}
+
 	return &userpb.UserInfo{
 		Id:        strconv.FormatInt(aInfo.UserId, 10),
 		NickName:  aInfo.NickName,

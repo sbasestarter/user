@@ -5,10 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
-	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	"github.com/sgostarter/i/l"
 )
 
+// nolint
 func TestEmailAuthentication_FixUserId(t *testing.T) {
 	type fields struct {
 		postClient postsbspb.PostSBSServiceClient
@@ -53,11 +55,11 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 			"test",
 			fields{postClient: nil},
 			args{user: &userpb.UserId{
-				UserName: "a111",
+				UserName: "a111@aa.cn",
 				UserVe:   userpb.VerificationEquipment_VEMail.String(),
 			}},
 			&userpb.UserId{
-				UserName: "a111",
+				UserName: "a111@aa.cn",
 				UserVe:   userpb.VerificationEquipment_VEMail.String(),
 			},
 			true,
@@ -77,18 +79,20 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ea := &emailAuthentication{
 				postClient: tt.fields.postClient,
+				logger:     l.NewNopLoggerWrapper().GetWrapperWithContext(),
 			}
-			got, got1, _ := ea.FixUserId(context.Background(), tt.args.user)
+			got, got1, _ := ea.FixUserID(context.Background(), tt.args.user)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("FixUserId() got = %v, want %v", got, tt.want)
+				t.Errorf("FixUserID() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("FixUserId() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("FixUserID() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
 }
 
+// nolint
 func TestEmailAuthentication_makeMaskSafeMail(t *testing.T) {
 	type fields struct {
 		postClient postsbspb.PostSBSServiceClient
@@ -131,6 +135,7 @@ func TestEmailAuthentication_makeMaskSafeMail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ea := &emailAuthentication{
 				postClient: tt.fields.postClient,
+				logger:     l.NewNopLoggerWrapper().GetWrapperWithContext(),
 			}
 			if got := ea.makeMaskSafeMail(context.Background(), tt.args.mail); got != tt.want {
 				t.Errorf("makeMaskSafeMail() = %v, want %v", got, tt.want)

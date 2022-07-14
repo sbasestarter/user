@@ -12,10 +12,10 @@ import (
 
 type Utils interface {
 	RandomString(n int, allowedChars ...[]rune) string
-	GetPeerIp(ctx context.Context) string
+	GetPeerIP(ctx context.Context) string
 }
 
-type HttpToken interface {
+type HTTPToken interface {
 	SetUserTokenCookie(ctx context.Context, token string) error
 	UnsetUserTokenCookie(ctx context.Context, token string) error
 }
@@ -23,7 +23,7 @@ type HttpToken interface {
 type Factory interface {
 	GetGRPCClientFactory() GRPCClientFactory
 	GetUtils() Utils
-	GetHttpToken() HttpToken
+	GetHTTPToken() HTTPToken
 }
 
 func NewFactory(ctx context.Context, getter discovery.Getter, cfg *config.Config, logger l.Wrapper) Factory {
@@ -50,6 +50,6 @@ func (impl *factoryImpl) GetUtils() Utils {
 	return helper.NewUtilsImpl()
 }
 
-func (impl *factoryImpl) GetHttpToken() HttpToken {
-	return NewHttpToken(impl.cfg.Token.Domain, int(impl.cfg.Token.Expire/time.Second))
+func (impl *factoryImpl) GetHTTPToken() HTTPToken {
+	return NewHTTPToken(impl.cfg.Token.Domain, int(impl.cfg.Token.Expire/time.Second))
 }

@@ -16,6 +16,6 @@ func (u *UtilsImpl) RandomString(n int, allowedChars ...[]rune) string {
 	return randomString(n, allowedChars...)
 }
 
-func (u *UtilsImpl) GetPeerIp(ctx context.Context) string {
+func (u *UtilsImpl) GetPeerIP(ctx context.Context) string {
 	return grpce.GrpcGetRealIP(ctx)
 }

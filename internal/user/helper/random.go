@@ -15,6 +15,7 @@ func randomString(n int, allowedChars ...[]rune) string {
 
 	b := make([]rune, n)
 	for i := range b {
+		// nolint: gosec
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 

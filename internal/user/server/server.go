@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
+	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
@@ -23,14 +23,16 @@ func NewUserServer(ctx context.Context, cfg *config.Config, logger l.Wrapper) *U
 	}
 
 	rand.Seed(time.Now().UnixNano() + 987543)
-	getter, err := librediscovery.NewGetter(ctx, logger, cfg.RedisCli, "", 5*time.Minute, time.Minute)
+
+	getter, err := librediscovery.NewGetter(ctx, logger, cfg.DbToolset.GetRedis(), "", 5*time.Minute, time.Minute)
 	if err != nil {
 		logger.Fatalf("new discovery getter failed: %v", err)
+
 		return nil
 	}
 
 	return &UserServer{
-		controller: controller.NewController(cfg, logger, cfg.RedisCli, cfg.MySqlCli,
+		controller: controller.NewController(cfg, logger, cfg.DbToolset.GetRedis(), cfg.DbToolset.GetXOrm(),
 			factory.NewFactory(ctx, getter, cfg, logger)),
 	}
 }
@@ -40,6 +42,7 @@ func (us *UserServer) makeStatus(status userpb.UserStatus, err error) *userpb.Se
 	if err != nil {
 		msg = err.Error()
 	}
+
 	return us.makeStatusWithMsg(status, msg)
 }
 
@@ -47,6 +50,7 @@ func (us *UserServer) makeStatusWithMsg(status userpb.UserStatus, msg string) *u
 	if msg == "" {
 		msg = status.String()
 	}
+
 	return &userpb.ServerStatus{
 		Status: status,
 		Msg:    msg,
@@ -97,6 +101,7 @@ func (us *UserServer) Logout(ctx context.Context, req *userpb.LogoutRequest) (*u
 func (us *UserServer) GoogleAuthGetSetupInfo(ctx context.Context, req *userpb.GoogleAuthGetSetupInfoRequest) (
 	*userpb.GoogleAuthGetSetupInfoResponse, error) {
 	status, key, err := us.controller.GoogleAuthGetSetupInfo(ctx, req.Token)
+
 	return &userpb.GoogleAuthGetSetupInfoResponse{
 		Status:    us.makeStatus(status, err),
 		SecretKey: key,
@@ -106,6 +111,7 @@ func (us *UserServer) GoogleAuthGetSetupInfo(ctx context.Context, req *userpb.Go
 func (us *UserServer) GoogleAuthVerify(ctx context.Context, req *userpb.GoogleAuthVerifyRequest) (
 	*userpb.GoogleAuthVerifyResponse, error) {
 	status, token, err := us.controller.GoogleAuthVerify(ctx, req.Token, req.Code)
+
 	return &userpb.GoogleAuthVerifyResponse{
 		Status: us.makeStatus(status, err),
 		Token:  token,
@@ -120,6 +126,7 @@ func (us *UserServer) GoogleAuthSet(ctx context.Context, req *userpb.GoogleAuthS
 
 func (us *UserServer) Profile(ctx context.Context, req *userpb.ProfileRequest) (*userpb.ProfileResponse, error) {
 	status, userInfo, ssoToken, err := us.controller.Profile(ctx, req.Token, req.AttachSsoToken, req.SsoJumpUrl)
+
 	return &userpb.ProfileResponse{
 		Status:   us.makeStatus(status, err),
 		Info:     userInfo,
@@ -140,6 +147,7 @@ func (us *UserServer) ChangePassword(ctx context.Context, req *userpb.ChangePass
 func (us *UserServer) GetCsrfToken(ctx context.Context, req *userpb.GetCsrfTokenRequest) (
 	*userpb.GetCsrfTokenResponse, error) {
 	status, csrfToken, err := us.controller.GetCsrfToken(ctx, req.Token)
+
 	return &userpb.GetCsrfTokenResponse{
 		Status:    us.makeStatus(status, err),
 		CsrfToken: csrfToken,
@@ -148,6 +156,7 @@ func (us *UserServer) GetCsrfToken(ctx context.Context, req *userpb.GetCsrfToken
 
 func (us *UserServer) GetDetailInfo(ctx context.Context, req *userpb.GetDetailInfoRequest) (*userpb.GetDetailInfoResponse, error) {
 	status, userInfo, err := us.controller.GetDetailInfo(ctx, req.Token)
+
 	return &userpb.GetDetailInfoResponse{
 		Status: us.makeStatus(status, err),
 		Info:   userInfo,
@@ -162,6 +171,7 @@ func (us *UserServer) UpdateDetailInfo(ctx context.Context, req *userpb.UpdateDe
 
 func (us *UserServer) GetUserList(ctx context.Context, req *userpb.GetUserListRequest) (*userpb.GetUserListResponse, error) {
 	status, cnt, users, err := us.controller.GetUserList(ctx, req.Token, req.CsrfToken, req.Offset, req.Limit, req.Keyword)
+
 	return &userpb.GetUserListResponse{
 		Status: us.makeStatus(status, err),
 		Cnt:    cnt,
@@ -171,6 +181,7 @@ func (us *UserServer) GetUserList(ctx context.Context, req *userpb.GetUserListRe
 
 func (us *UserServer) ManagerUser(ctx context.Context, req *userpb.ManagerUserRequest) (*userpb.ManagerUserResponse, error) {
 	status, err := us.controller.ManagerUser(ctx, req)
+
 	return &userpb.ManagerUserResponse{
 		Status: us.makeStatus(status, err),
 	}, nil
@@ -178,6 +189,7 @@ func (us *UserServer) ManagerUser(ctx context.Context, req *userpb.ManagerUserRe
 
 func (us *UserServer) AdminProfile(ctx context.Context, req *userpb.AdminProfileRequest) (*userpb.AdminProfileResponse, error) {
 	status, userInfo, err := us.controller.AdminProfile(ctx, req.Token)
+
 	return &userpb.AdminProfileResponse{
 		Status: us.makeStatus(status, err),
 		Info:   userInfo,
