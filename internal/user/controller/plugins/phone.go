@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-postsbs-go"
 	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
@@ -37,7 +37,7 @@ func NewPhoneAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientF
 
 func (pa *phoneAuthentication) FixUserID(ctx context.Context, user *userpb.UserId) (*userpb.UserId, bool, error) {
 	switch user.UserVe {
-	case userpb.VerificationEquipment_VEPhone.String():
+	case userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_PHONE.String():
 		userName, err := pa.fixPhone(ctx, user.UserName)
 		if err != nil {
 			return nil, true, err
@@ -46,11 +46,11 @@ func (pa *phoneAuthentication) FixUserID(ctx context.Context, user *userpb.UserI
 		user.UserName = userName
 
 		return user, true, nil
-	case userpb.VerificationEquipment_VEAuto.String():
+	case userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_UNSPECIFIED.String():
 		userName, err := pa.fixPhone(ctx, user.UserName)
 		if err == nil {
 			user.UserName = userName
-			user.UserVe = userpb.VerificationEquipment_VEPhone.String()
+			user.UserVe = userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_PHONE.String()
 
 			return user, true, nil
 		}
@@ -63,7 +63,8 @@ func (pa *phoneAuthentication) FixUserID(ctx context.Context, user *userpb.UserI
 
 func (pa *phoneAuthentication) TriggerAuthentication(ctx context.Context, userName, code string,
 	purpose userpb.TriggerAuthPurpose) (err error) {
-	return GRPCPostCode(ctx, purpose, userName, code, pa.cfg, pa.postClient, postsbspb.PostProtocolType_PostProtocolSMS, pa.logger)
+	return GRPCPostCode(ctx, purpose, userName, code, pa.cfg, pa.postClient,
+		postsbspb.PostProtocolType_POST_PROTOCOL_TYPE_SMS, pa.logger)
 }
 
 func (pa *phoneAuthentication) GetNickName(ctx context.Context, userName string) string {

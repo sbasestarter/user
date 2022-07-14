@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sbasestarter/db-orm/go/user"
-	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
+	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-go"
 	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
@@ -76,11 +76,11 @@ func NewController(cfg *config.Config, logger l.Wrapper, redis *redis.Client, db
 
 func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpose userpb.TriggerAuthPurpose) (userpb.UserStatus, error) {
 	if user == nil || user.UserVe == "" {
-		return userpb.UserStatus_US_FAILED, errors.New("invalid input")
+		return userpb.UserStatus_USER_STATUS_FAILED, errors.New("invalid input")
 	}
 
 	status, fixedUser, err := c.authPlugins.FixUserID(ctx, user)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		return status, err
 	}
 
@@ -98,10 +98,10 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 		if err != nil {
 			c.logger.Errorf(ctx, "redis error: %v", err)
 
-			return userpb.UserStatus_US_INTERNAL_ERROR, err
+			return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, err
 		}
 
-		return userpb.UserStatus_US_VERIFY_TOO_QUICK, err
+		return userpb.UserStatus_USER_STATUS_VERIFY_TOO_QUICK, err
 	}
 
 	// nolint: contextcheck
@@ -113,11 +113,11 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 	if err != nil {
 		c.logger.Errorf(ctx, "check verify limit failed: %v", err)
 
-		return userpb.UserStatus_US_INTERNAL_ERROR, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, err
 	}
 
 	status, code, err := c.authPlugins.TriggerAuthentication(ctx, user, purpose)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		return status, err
 	}
 
@@ -132,10 +132,10 @@ func (c *Controller) TriggerAuth(ctx context.Context, user *userpb.UserId, purpo
 	if err != nil {
 		c.logger.Errorf(ctx, "save verify code error: %v", err)
 
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil
 	}
 
-	return userpb.UserStatus_US_SUCCESS, nil
+	return userpb.UserStatus_USER_STATUS_SUCCESS, nil
 }
 
 func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForVe, newPassword string,
@@ -143,26 +143,26 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 	if user == nil || user.UserVe == "" || newPassword == "" {
 		c.logger.Errorf(ctx, "invalid input: %+v, %v", user, newPassword)
 
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		return
 	}
 
 	if codeForVe == "" {
-		status = userpb.UserStatus_US_NEED_VE_AUTH
+		status = userpb.UserStatus_USER_STATUS_NEED_VE_AUTH
 
 		return
 	}
 
 	status, fixedUser, err := c.authPlugins.FixUserID(ctx, user)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		return
 	}
 
 	user = fixedUser
 
 	status, err = c.checkVe(user, codeForVe)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "checkVe failed: %v", err)
 
 		return
@@ -176,9 +176,9 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 	}
 
 	status, nickName := c.authPlugins.GetNickName(ctx, user)
-	if status == userpb.UserStatus_US_DONT_SUPPORT {
+	if status == userpb.UserStatus_USER_STATUS_DONT_SUPPORT {
 		nickName = user.UserName
-	} else if status != userpb.UserStatus_US_SUCCESS {
+	} else if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Warnf(ctx, "get nickName failed: %v", err)
 
 		nickName = user.UserName
@@ -188,7 +188,7 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 	if err != nil {
 		c.logger.Errorf(ctx, "pass encrypt failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -202,7 +202,7 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 
 	status, ssoToken, token, info, err = c.signResponseInfoAfterCheckPassEx(ctx, userInfo.UserId, userInfo,
 		model.UserTrustRegisterNumber, attachSsoToken, ssoJumpURL)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "signResponseInfoAfterCheckPass failed: %v, %v", status, err)
 
 		return
@@ -211,9 +211,9 @@ func (c *Controller) Register(ctx context.Context, user *userpb.UserId, codeForV
 	c.removeVe(user)
 
 	if c.cfg.GoogleAuthenticator.Force {
-		status = userpb.UserStatus_US_NEED_2FA_SETUP
+		status = userpb.UserStatus_USER_STATUS_NEED_2FA_SETUP
 	} else {
-		status = userpb.UserStatus_US_SUCCESS
+		status = userpb.UserStatus_USER_STATUS_SUCCESS
 	}
 
 	return
@@ -225,7 +225,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 	if userID == nil || userID.UserVe == "" {
 		c.logger.Errorf(ctx, "invalid input: %+v", userID)
 
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		return
 	}
@@ -235,7 +235,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 	var nickName string
 
 	status, fixedUser, nickName, avatar := c.authPlugins.TryAutoLogin(ctx, userID, codeForVe)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Warnf(ctx, "auto login failed: %v", status)
 	} else {
 		c.logger.Info(ctx, "auto login success")
@@ -247,7 +247,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		userSource, err = c.m.MustUserSource(userID.UserName, userID.UserVe)
 		if err != nil {
 			c.logger.Errorf(ctx, "must userID source failed: %v", err)
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -273,7 +273,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		var fixedUser *userpb.UserId
 
 		status, fixedUser, err = c.authPlugins.FixUserID(ctx, userID)
-		if status != userpb.UserStatus_US_SUCCESS {
+		if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 			return
 		}
 
@@ -285,7 +285,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		if err != nil {
 			c.logger.Errorf(ctx, "GetUserIDBySource failed: %v", err)
 
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -293,7 +293,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		if uid <= 0 {
 			c.logger.Errorf(ctx, "GetUserIDBySource no userID id: %+v", uid)
 
-			status = userpb.UserStatus_US_USER_NOT_EXISTS
+			status = userpb.UserStatus_USER_STATUS_USER_NOT_EXISTS
 
 			return
 		}
@@ -306,7 +306,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		if err != nil {
 			c.logger.Errorf(ctx, "IsUserTrust failed: %v", err)
 
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -314,7 +314,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		if password == "" {
 			c.logger.Errorf(ctx, "IsUserTrust check failed, need password verify")
 
-			status = userpb.UserStatus_US_NEED_PASSWORD_AUTH
+			status = userpb.UserStatus_USER_STATUS_NEED_PASSWORD_AUTH
 
 			return
 		}
@@ -323,7 +323,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 			if codeForVe == "" {
 				c.logger.Errorf(ctx, "IsUserTrust check failed, need code verify")
 
-				status = userpb.UserStatus_US_NEED_VE_AUTH
+				status = userpb.UserStatus_USER_STATUS_NEED_VE_AUTH
 
 				return
 			}
@@ -336,7 +336,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 			if err != nil {
 				c.logger.Errorf(ctx, "GetUser2FaKey failed: %v", err)
 
-				status = userpb.UserStatus_US_INTERNAL_ERROR
+				status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 				return
 			}
@@ -345,7 +345,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 				if key != "" {
 					c.logger.Errorf(ctx, "should use 2fa: %v", uid)
 
-					status = userpb.UserStatus_US_NEED_2FA_AUTH
+					status = userpb.UserStatus_USER_STATUS_NEED_2FA_AUTH
 
 					return
 				}
@@ -353,7 +353,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		}
 
 		status, err = c.verifyPassword(ctx, uid, password)
-		if status != userpb.UserStatus_US_SUCCESS {
+		if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 			c.logger.Errorf(ctx, "check password failed: %v, %v", status, err)
 
 			return
@@ -361,7 +361,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 
 		if codeForVe != "" {
 			status, err = c.checkVe(userID, codeForVe)
-			if status != userpb.UserStatus_US_SUCCESS {
+			if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 				c.logger.Errorf(ctx, "check ve failed: %v, %v", status, err)
 
 				return
@@ -370,7 +370,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 
 		if codeForGa != "" {
 			status = c.gaVerify(ctx, uid, codeForGa)
-			if status != userpb.UserStatus_US_SUCCESS {
+			if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 				c.logger.Errorf(ctx, "check 2fa failed: %v, %v", status, err)
 
 				return
@@ -383,7 +383,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 		if err != nil {
 			c.logger.Errorf(ctx, "get userID info failed: %v", err)
 
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -400,7 +400,7 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -410,9 +410,9 @@ func (c *Controller) Login(ctx context.Context, userID *userpb.UserId, password,
 	}
 
 	if c.cfg.GoogleAuthenticator.Force && !c.gaEnabled(ctx, authInfo.UserID) {
-		status = userpb.UserStatus_US_NEED_2FA_SETUP
+		status = userpb.UserStatus_USER_STATUS_NEED_2FA_SETUP
 	} else {
-		status = userpb.UserStatus_US_SUCCESS
+		status = userpb.UserStatus_USER_STATUS_SUCCESS
 	}
 
 	return
@@ -424,7 +424,7 @@ func (c *Controller) SSOLogin(ctx context.Context, ssoToken string) (status user
 	if err != nil {
 		c.logger.Errorf(ctx, "sso login failed: %v", err)
 
-		status = userpb.UserStatus_US_WRONG_CODE
+		status = userpb.UserStatus_USER_STATUS_WRONG_CODE
 
 		return
 	}
@@ -433,22 +433,22 @@ func (c *Controller) SSOLogin(ctx context.Context, ssoToken string) (status user
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
 
 func (c *Controller) Logout(ctx context.Context, token string) (status userpb.UserStatus, err error) {
 	status, fixedToken, _, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "fixAndVerifyToken failed: %v, %v", err, token)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
@@ -462,7 +462,7 @@ func (c *Controller) Logout(ctx context.Context, token string) (status userpb.Us
 		err = nil
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -470,10 +470,10 @@ func (c *Controller) Logout(ctx context.Context, token string) (status userpb.Us
 func (c *Controller) GoogleAuthGetSetupInfo(ctx context.Context, token string) (status userpb.UserStatus,
 	secretKey string, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "fixAndVerifyToken failed: %v, %v", err, token)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
@@ -482,12 +482,12 @@ func (c *Controller) GoogleAuthGetSetupInfo(ctx context.Context, token string) (
 	if err != nil {
 		c.logger.Errorf(ctx, "generate secret qr code failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -495,16 +495,16 @@ func (c *Controller) GoogleAuthGetSetupInfo(ctx context.Context, token string) (
 func (c *Controller) GoogleAuthVerify(ctx context.Context, token, code string) (status userpb.UserStatus, gaToken string,
 	err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	status = c.gaVerify(ctx, authInfo.UserID, code)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "ga verify failed: %v", status)
 
 		return
@@ -512,14 +512,14 @@ func (c *Controller) GoogleAuthVerify(ctx context.Context, token, code string) (
 
 	gaToken, err = c.genGaToken(ctx, authInfo.UserID)
 	if err != nil {
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		c.logger.Errorf(ctx, "gen ga token failed: %v", err)
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -527,17 +527,17 @@ func (c *Controller) GoogleAuthVerify(ctx context.Context, token, code string) (
 func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld string) (status userpb.UserStatus,
 	err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	if c.gaEnabled(ctx, authInfo.UserID) {
 		if tokenGaOld == "" {
-			status = userpb.UserStatus_US_NEED_2FA_AUTH
+			status = userpb.UserStatus_USER_STATUS_NEED_2FA_AUTH
 
 			return
 		}
@@ -545,7 +545,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 
 	if tokenGaOld != "" {
 		if !c.gaTokenExists(ctx, authInfo.UserID, tokenGaOld) {
-			status = userpb.UserStatus_US_WRONG_CODE
+			status = userpb.UserStatus_USER_STATUS_WRONG_CODE
 
 			return
 		}
@@ -553,7 +553,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 
 	if code == "" {
 		if c.cfg.GoogleAuthenticator.Force {
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -561,7 +561,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 		err = c.m.SetUser2FaKey(authInfo.UserID, "")
 
 		if err != nil {
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			c.logger.Errorf(ctx, "db set google auth key failed: %v", err)
 		}
@@ -569,7 +569,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 		status, err = c.gaSetupWithCode(ctx, authInfo.UserID, code)
 	}
 
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "gaSetupWithCode failed: %v, %v", status, err)
 
 		return
@@ -579,7 +579,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 		c.removeGaToken(ctx, authInfo.UserID, tokenGaOld)
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -587,7 +587,7 @@ func (c *Controller) GoogleAuthSet(ctx context.Context, token, code, tokenGaOld 
 func (c *Controller) Profile(ctx context.Context, token string, attachSsoToken bool, ssoJumpURL string) (status userpb.UserStatus,
 	userInfo *userpb.UserInfo, ssoToken string, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
 		return
@@ -610,7 +610,7 @@ func (c *Controller) Profile(ctx context.Context, token string, attachSsoToken b
 
 	userInfo = c.authInfo2PbUserInfo(authInfo, gaEnabled)
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -619,20 +619,20 @@ func (c *Controller) Profile(ctx context.Context, token string, attachSsoToken b
 func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, newPassword, codeForVe,
 	codeForGa string) (status userpb.UserStatus, token string, info *userpb.UserInfo, err error) {
 	if user == nil || user.UserVe == "" {
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		return
 	}
 
 	status, fixedUser, err := c.authPlugins.FixUserID(ctx, user)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		return
 	}
 
 	user = fixedUser
 
 	status, err = c.checkVe(user, codeForVe)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check ve failed: %v, %v", status, err)
 
 		return
@@ -644,7 +644,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 	if err != nil {
 		c.logger.Errorf(ctx, "GetUserIDBySource failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -652,7 +652,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 	if userID <= 0 {
 		c.logger.Errorf(ctx, "GetUserIDBySource no user id: %+v", user)
 
-		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		status = userpb.UserStatus_USER_STATUS_USER_NOT_EXISTS
 
 		return
 	}
@@ -664,7 +664,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 		if err != nil {
 			c.logger.Errorf(ctx, "GetUser2FaKey failed: %v", err)
 
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -672,7 +672,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 		if key != "" && codeForGa == "" {
 			c.logger.Errorf(ctx, "should use 2fa: %v", userID)
 
-			status = userpb.UserStatus_US_NEED_2FA_AUTH
+			status = userpb.UserStatus_USER_STATUS_NEED_2FA_AUTH
 
 			return
 		}
@@ -680,7 +680,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 
 	if codeForGa != "" {
 		status = c.gaVerify(ctx, userID, codeForGa)
-		if status != userpb.UserStatus_US_SUCCESS {
+		if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 			c.logger.Errorf(ctx, "check 2fa failed: %v, %v", status, err)
 
 			return
@@ -691,7 +691,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 	if err != nil {
 		c.logger.Errorf(ctx, "pass encrypt failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -700,13 +700,13 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 	if err != nil {
 		c.logger.Errorf(ctx, "update user password failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
 	status, token, info, err = c.signResponseInfoAfterCheckPass(ctx, userID, nil, 1)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "signResponseInfoAfterCheckPass failed: %v, %v", status, err)
 
 		return
@@ -714,7 +714,7 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 
 	c.removeVe(user)
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -722,23 +722,23 @@ func (c *Controller) ResetPassword(ctx context.Context, user *userpb.UserId, new
 func (c *Controller) ChangePassword(ctx context.Context, token, csrfToken,
 	password, newPassword string) (status userpb.UserStatus, newToken string, info *userpb.UserInfo, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	status, err = c.verifyPassword(ctx, authInfo.UserID, password)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check password failed: %v, %v", status, err)
 
 		return
 	}
 
 	status, err = c.verifyCsrfToken(ctx, csrfToken)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
 
 		return
@@ -748,7 +748,7 @@ func (c *Controller) ChangePassword(ctx context.Context, token, csrfToken,
 	if err != nil {
 		c.logger.Errorf(ctx, "pass encrypt failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -757,7 +757,7 @@ func (c *Controller) ChangePassword(ctx context.Context, token, csrfToken,
 	if err != nil {
 		c.logger.Errorf(ctx, "update user password failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
@@ -768,7 +768,7 @@ func (c *Controller) ChangePassword(ctx context.Context, token, csrfToken,
 func (c *Controller) GetCsrfToken(ctx context.Context, token string) (
 	status userpb.UserStatus, csrfToken string, err error) {
 	status, token, _, err = c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		return
 	}
 
@@ -776,12 +776,12 @@ func (c *Controller) GetCsrfToken(ctx context.Context, token string) (
 	if err != nil {
 		c.logger.Errorf(ctx, "gen csrf token failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -789,10 +789,10 @@ func (c *Controller) GetCsrfToken(ctx context.Context, token string) (
 func (c *Controller) GetDetailInfo(ctx context.Context, token string) (status userpb.UserStatus,
 	info *userpb.UserDetailInfo, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
@@ -801,29 +801,29 @@ func (c *Controller) GetDetailInfo(ctx context.Context, token string) (status us
 	if err != nil {
 		c.logger.Errorf(ctx, "get user detail info failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
 	info = c.userDetail2PbUserDetail(userDetail, userSource)
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
 
 func (c *Controller) UpdateDetailInfo(ctx context.Context, token, csrfToken, avatar, nickName, phone, email, wechat string) (status userpb.UserStatus, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	status, err = c.verifyCsrfToken(ctx, csrfToken)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
 
 		return
@@ -833,7 +833,7 @@ func (c *Controller) UpdateDetailInfo(ctx context.Context, token, csrfToken, ava
 	if err != nil {
 		c.logger.Errorf(ctx, "update nick name failed: %v", err)
 
-		status = userpb.UserStatus_US_USER_ALREADY_EXISTS
+		status = userpb.UserStatus_USER_STATUS_USER_ALREADY_EXISTS
 
 		return
 	}
@@ -842,12 +842,12 @@ func (c *Controller) UpdateDetailInfo(ctx context.Context, token, csrfToken, ava
 	if err != nil {
 		c.logger.Errorf(ctx, "update user ext failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -883,7 +883,7 @@ func (c *Controller) fixAndVerifyToken(ctx context.Context, token string) (
 	}
 
 	if fixedToken == "" {
-		status = userpb.UserStatus_US_UNAUTHENTICATED
+		status = userpb.UserStatus_USER_STATUS_UNAUTHENTICATED
 
 		return
 	}
@@ -892,12 +892,12 @@ func (c *Controller) fixAndVerifyToken(ctx context.Context, token string) (
 	if err != nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_UNAUTHENTICATED
+		status = userpb.UserStatus_USER_STATUS_UNAUTHENTICATED
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -905,16 +905,16 @@ func (c *Controller) fixAndVerifyToken(ctx context.Context, token string) (
 func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, offset int64, limit int32,
 	keyword string) (status userpb.UserStatus, cnt int64, users []*userpb.UserListItem, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	status, err = c.verifyCsrfToken(ctx, csrfToken)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
 
 		return
@@ -922,7 +922,7 @@ func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, o
 
 	adminUserInfo, err := c.m.GetUserInfo(authInfo.UserID)
 	if err != nil {
-		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		status = userpb.UserStatus_USER_STATUS_USER_NOT_EXISTS
 
 		c.logger.Errorf(ctx, "admin user by id %v failed: %v", authInfo.UserID, err)
 
@@ -930,7 +930,7 @@ func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, o
 	}
 
 	if adminUserInfo.Privileges == 0 {
-		status = userpb.UserStatus_US_DONT_SUPPORT
+		status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 		c.logger.Warnf(ctx, "user %v no permission", authInfo.UserID)
 
@@ -939,7 +939,7 @@ func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, o
 
 	cnt, dbUsers, err := c.m.GetUserList(offset, int(limit), keyword)
 	if err != nil {
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		return
 	}
@@ -959,16 +959,16 @@ func (c *Controller) GetUserList(ctx context.Context, token, csrfToken string, o
 
 func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserRequest) (status userpb.UserStatus, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, req.Token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
 
 	status, err = c.verifyCsrfToken(ctx, req.CsrfToken)
-	if status != userpb.UserStatus_US_SUCCESS {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS {
 		c.logger.Errorf(ctx, "check csrf token failed: %v, %v", status, err)
 
 		return
@@ -976,7 +976,7 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 
 	adminUserInfo, err := c.m.GetUserInfo(authInfo.UserID)
 	if err != nil {
-		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		status = userpb.UserStatus_USER_STATUS_USER_NOT_EXISTS
 
 		c.logger.Errorf(ctx, "admin user by id %v failed: %v", req.Uid, err)
 
@@ -985,15 +985,15 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 
 	userInfo, err := c.m.GetUserInfo(req.Uid)
 	if err != nil {
-		status = userpb.UserStatus_US_USER_NOT_EXISTS
+		status = userpb.UserStatus_USER_STATUS_USER_NOT_EXISTS
 
 		c.logger.Errorf(ctx, "search user by id %v failed: %v", req.Uid, err)
 
 		return
 	}
 
-	if adminUserInfo.UserId == userInfo.UserId && req.Type == userpb.ManagerUserType_MUTDelete {
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+	if adminUserInfo.UserId == userInfo.UserId && req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_DELETE {
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		c.logger.Errorf(ctx, "try to kill self: %v", adminUserInfo.UserId)
 
@@ -1001,7 +1001,7 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 	}
 
 	if adminUserInfo.Privileges == 0 {
-		status = userpb.UserStatus_US_DONT_SUPPORT
+		status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 		c.logger.Warnf(ctx, "user %v no permission", req.Uid)
 
@@ -1009,13 +1009,13 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 	}
 
 	// nolint: nestif
-	if req.Type == userpb.ManagerUserType_MUTSetAdminPrivilege {
+	if req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_SET_ADMIN_PRIVILEGE {
 		err = c.m.SetUserPrivileges(req.Uid, 1)
-	} else if req.Type == userpb.ManagerUserType_MUTUnsetAdminPrivilege {
+	} else if req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_UNSET_ADMIN_PRIVILEGE {
 		err = c.m.SetUserPrivileges(req.Uid, 0)
-	} else if req.Type == userpb.ManagerUserType_MUTDelete {
+	} else if req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_DELETE {
 		err = c.m.DeleteUser(req.Uid)
-	} else if req.Type == userpb.ManagerUserType_MUTSwitchAdminPrivilege {
+	} else if req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_SWITCH_ADMIN_PRIVILEGE {
 		privileges := userInfo.Privileges
 		if privileges == 0 {
 			privileges = 1
@@ -1023,9 +1023,9 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 			privileges = 0
 		}
 		err = c.m.SetUserPrivileges(req.Uid, privileges)
-	} else if req.Type == userpb.ManagerUserType_MUTResetPassword {
+	} else if req.Type == userpb.ManagerUserType_MANAGER_USER_TYPE_RESET_PASSWORD {
 		if req.GetResetPassword() == nil {
-			status = userpb.UserStatus_US_BAD_INPUT
+			status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 			c.logger.Warn(ctx, "no reset password struct")
 
@@ -1035,7 +1035,7 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 		password, err = c.passEncrypt(req.GetResetPassword().NewPassword)
 		if err != nil {
 			c.logger.Errorf(ctx, "pass encrypt failed: %v", err)
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -1045,12 +1045,12 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 	if err != nil {
 		c.logger.Errorf(ctx, "mysql failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -1058,10 +1058,10 @@ func (c *Controller) ManagerUser(ctx context.Context, req *userpb.ManagerUserReq
 func (c *Controller) AdminProfile(ctx context.Context, token string) (status userpb.UserStatus,
 	userInfo *userpb.AdminUserInfo, err error) {
 	status, _, authInfo, err := c.fixAndVerifyToken(ctx, token)
-	if status != userpb.UserStatus_US_SUCCESS || authInfo == nil {
+	if status != userpb.UserStatus_USER_STATUS_SUCCESS || authInfo == nil {
 		c.logger.Errorf(ctx, "verify token failed: %v", err)
 
-		status = userpb.UserStatus_US_BAD_INPUT
+		status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 
 		return
 	}
@@ -1072,7 +1072,7 @@ func (c *Controller) AdminProfile(ctx context.Context, token string) (status use
 	}
 
 	userInfo = c.authInfo2PbAdminUserInfo(authInfo, gaEnabled)
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }

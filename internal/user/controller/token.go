@@ -422,19 +422,19 @@ func (c *Controller) verifyCsrfToken(ctx context.Context, csrfToken string) (use
 	if err != nil {
 		c.logger.Errorf(ctx, "redis no key: %v", err)
 
-		return userpb.UserStatus_US_WRONG_CODE, err
+		return userpb.UserStatus_USER_STATUS_WRONG_CODE, err
 	}
 
 	_, err = c.verifyToken(ctx, token)
 	if err != nil {
 		c.logger.Errorf(ctx, "redis invalid token: %v", err)
 
-		return userpb.UserStatus_US_WRONG_CODE, err
+		return userpb.UserStatus_USER_STATUS_WRONG_CODE, err
 	}
 
 	c.removeCsrfToken(ctx, csrfToken)
 
-	return userpb.UserStatus_US_SUCCESS, nil
+	return userpb.UserStatus_USER_STATUS_SUCCESS, nil
 }
 
 func (c *Controller) removeCsrfToken(_ context.Context, csrfToken string) {

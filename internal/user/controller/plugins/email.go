@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/caixw/lib.go/validation/validator"
-	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-postsbs-go"
 	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sbasestarter/user/internal/user/controller/factory"
@@ -37,7 +37,7 @@ func NewEmailAuthentication(cfg *config.VEConfig, cliFactory factory.GRPCClientF
 
 func (ea *emailAuthentication) FixUserID(ctx context.Context, user *userpb.UserId) (*userpb.UserId, bool, error) {
 	switch user.UserVe {
-	case userpb.VerificationEquipment_VEMail.String():
+	case userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String():
 		if !validator.IsEmail(user.UserName) {
 			ea.logger.Errorf(ctx, "unknown email format: %v", user.UserName)
 
@@ -45,9 +45,9 @@ func (ea *emailAuthentication) FixUserID(ctx context.Context, user *userpb.UserI
 		}
 
 		return user, true, nil
-	case userpb.VerificationEquipment_VEAuto.String():
+	case userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_UNSPECIFIED.String():
 		if validator.IsEmail(user.UserName) {
-			user.UserVe = userpb.VerificationEquipment_VEMail.String()
+			user.UserVe = userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String()
 
 			return user, true, nil
 		}
@@ -59,7 +59,7 @@ func (ea *emailAuthentication) FixUserID(ctx context.Context, user *userpb.UserI
 }
 
 func (ea *emailAuthentication) TriggerAuthentication(ctx context.Context, userName, code string, purpose userpb.TriggerAuthPurpose) (err error) {
-	return GRPCPostCode(ctx, purpose, userName, code, ea.cfg, ea.postClient, postsbspb.PostProtocolType_PostProtocolMail, ea.logger)
+	return GRPCPostCode(ctx, purpose, userName, code, ea.cfg, ea.postClient, postsbspb.PostProtocolType_POST_PROTOCOL_TYPE_MAIL, ea.logger)
 }
 
 // 大于等于4位，显示前2后1。小于等于3位，隐藏末位

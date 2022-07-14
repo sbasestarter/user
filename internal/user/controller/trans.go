@@ -19,11 +19,11 @@ func (c *Controller) dbUser2AuthInfo(user *user.UserInfo) *AuthInfo {
 }
 
 func (c *Controller) authInfo2PbUserInfo(aInfo *AuthInfo, gaEnabled bool) *userpb.UserInfo {
-	flagGa := userpb.GoogleAuthGlobalFlag_GoogleAuthNone
+	flagGa := userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_UNSPECIFIED
 	if c.cfg.GoogleAuthenticator.Enable {
-		flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabled
+		flagGa = userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_ENABLED
 		if c.cfg.GoogleAuthenticator.Force {
-			flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabledForce
+			flagGa = userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_ENABLED_FORCE
 		}
 	}
 
@@ -45,12 +45,12 @@ func (c *Controller) authInfo2PbAdminUserInfo(aInfo *AuthInfo, gaEnabled bool) *
 }
 
 func (c *Controller) userInfo2PbUserInfo(aInfo *user.UserInfo, gaEnabled bool) *userpb.UserInfo {
-	flagGa := userpb.GoogleAuthGlobalFlag_GoogleAuthNone
+	flagGa := userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_UNSPECIFIED
 	if c.cfg.GoogleAuthenticator.Enable {
-		flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabled
+		flagGa = userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_ENABLED
 
 		if c.cfg.GoogleAuthenticator.Force {
-			flagGa = userpb.GoogleAuthGlobalFlag_GoogleAuthFlagEnabledForce
+			flagGa = userpb.GoogleAuthGlobalFlag_GOOGLE_AUTH_GLOBAL_FLAG_ENABLED_FORCE
 		}
 	}
 

@@ -51,7 +51,7 @@ func (c *Controller) gaSetupWithCode(ctx context.Context, userID int64, code str
 	})
 
 	if err != nil {
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		c.logger.Errorf(ctx, "get redis value failed: %v, %v", err, gaSecretKeyRedisKey(userID))
 
@@ -60,7 +60,7 @@ func (c *Controller) gaSetupWithCode(ctx context.Context, userID int64, code str
 
 	ok, err := validateUser2FaCode(key, code)
 	if err != nil {
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		c.logger.Errorf(ctx, "validateUser2FaCode error: %v, %v", err, code)
 
@@ -68,7 +68,7 @@ func (c *Controller) gaSetupWithCode(ctx context.Context, userID int64, code str
 	}
 
 	if !ok {
-		status = userpb.UserStatus_US_WRONG_CODE
+		status = userpb.UserStatus_USER_STATUS_WRONG_CODE
 		err = fmt.Errorf("validateUser2FaCode failed: %v", code)
 
 		c.logger.Errorf(ctx, err.Error())
@@ -78,7 +78,7 @@ func (c *Controller) gaSetupWithCode(ctx context.Context, userID int64, code str
 
 	err = c.m.SetUser2FaKey(userID, key)
 	if err != nil {
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		c.logger.Errorf(ctx, "db set google auth key failed: %v", err)
 
@@ -92,12 +92,12 @@ func (c *Controller) gaSetupWithCode(ctx context.Context, userID int64, code str
 	if err != nil {
 		c.logger.Errorf(ctx, "del %v failed: %v", gaSecretKeyRedisKey(userID), err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }
@@ -107,25 +107,25 @@ func (c *Controller) gaVerify(ctx context.Context, userID int64, code string) us
 	if err != nil {
 		c.logger.Errorf(ctx, "user %v: %v", userID, err)
 
-		return userpb.UserStatus_US_FAILED
+		return userpb.UserStatus_USER_STATUS_FAILED
 	}
 
 	if key == "" {
-		return userpb.UserStatus_US_NEED_2FA_SETUP
+		return userpb.UserStatus_USER_STATUS_NEED_2FA_SETUP
 	}
 
 	ok, err := validateUser2FaCode(key, code)
 	if err != nil {
 		c.logger.Errorf(ctx, "validateUser2FaCode failed: %v", err)
 
-		return userpb.UserStatus_US_INTERNAL_ERROR
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 	}
 
 	if !ok {
-		return userpb.UserStatus_US_WRONG_CODE
+		return userpb.UserStatus_USER_STATUS_WRONG_CODE
 	}
 
-	return userpb.UserStatus_US_SUCCESS
+	return userpb.UserStatus_USER_STATUS_SUCCESS
 }
 
 func (c *Controller) gaEnabled(ctx context.Context, userID int64) bool {

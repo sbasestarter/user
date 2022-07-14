@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/issue9/identicon"
-	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
+	filepb "github.com/sbasestarter/proto-repo/gen/protorepo-file-go"
 )
 
 func (c *Controller) filterUserAvatar(avatar string) string {
@@ -36,7 +36,7 @@ func (c *Controller) newAvatar(ctx context.Context, username string) (string, er
 		return "", err
 	}
 
-	req := &filecenterpb.UpdateFileRequest{
+	req := &filepb.UpdateFileRequest{
 		FileName: "",
 		Content:  buf.Bytes(),
 	}
@@ -47,12 +47,6 @@ func (c *Controller) newAvatar(ctx context.Context, username string) (string, er
 	resp, err := c.fileCli.UpdateFile(ctx, req)
 	if err != nil {
 		c.logger.Errorf(ctx, "avatar update failed: %v", err)
-
-		return "", err
-	}
-
-	if resp.GetStatus().GetStatus() != filecenterpb.FileCenterStatus_FCS_SUCCESS {
-		c.logger.Errorf(ctx, "avatar update failed: %v,%v", resp.GetStatus().GetStatus(), resp.GetStatus().GetMsg())
 
 		return "", err
 	}

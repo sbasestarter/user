@@ -78,7 +78,7 @@ func (m *Model) NewUser(userName, userVe, passwordHash, nickName, avatar string)
 
 	err := session.Begin()
 	if err != nil {
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 	}
 
 	defer func() {
@@ -99,7 +99,7 @@ RETRY:
 		if errors.As(err, &me) {
 			// https://dev.mysql.com/doc/refman/5.7/en/error-messages-server.html
 			if retryCount > 0 {
-				return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+				return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 			}
 
 			if me.Number == errMySQLDupEntry {
@@ -110,7 +110,7 @@ RETRY:
 			}
 		}
 
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 	}
 
 	userSource := &user.UserSource{
@@ -125,11 +125,11 @@ RETRY:
 		if errors.As(err, &me) {
 			// https://dev.mysql.com/doc/refman/5.7/en/error-messages-server.html
 			if me.Number == errMySQLDupEntry {
-				return userpb.UserStatus_US_USER_ALREADY_EXISTS, nil, err
+				return userpb.UserStatus_USER_STATUS_USER_ALREADY_EXISTS, nil, err
 			}
 		}
 
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 	}
 
 	userAuthentication := &user.UserAuthentication{
@@ -139,27 +139,27 @@ RETRY:
 
 	_, err = session.Insert(userAuthentication)
 	if err != nil {
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 	}
 
 	userExt := &user.UserExt{
 		UserId: userInfo.UserId,
 	}
 
-	if userVe == userpb.VerificationEquipment_VEMail.String() {
+	if userVe == userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String() {
 		userExt.Email = userName
-	} else if userVe == userpb.VerificationEquipment_VEPhone.String() {
+	} else if userVe == userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_PHONE.String() {
 		userExt.Phone = userName
 	}
 
 	_, err = session.Insert(userExt)
 	if err != nil {
-		return userpb.UserStatus_US_INTERNAL_ERROR, nil, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, nil, err
 	}
 
 	_ = session.Commit()
 
-	return userpb.UserStatus_US_SUCCESS, userInfo, nil
+	return userpb.UserStatus_USER_STATUS_SUCCESS, userInfo, nil
 }
 
 func (m *Model) GetUserAuthentication(userID int64) (*user.UserAuthentication, error) {

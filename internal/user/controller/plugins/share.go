@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-postsbs-go"
 	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sgostarter/i/l"
@@ -22,15 +22,15 @@ func GRPCPostCode(ctx context.Context, purpose userpb.TriggerAuthPurpose, userNa
 	ctx, closer := context.WithTimeout(ctx, 1*time.Minute)
 	defer closer()
 
-	purposeType := postsbspb.PostPurposeType_PostPurposeNone
+	purposeType := postsbspb.PostPurposeType_POST_PURPOSE_TYPE_UNSPECIFIED
 
 	switch purpose {
-	case userpb.TriggerAuthPurpose_TriggerAuthPurposeRegister:
-		purposeType = postsbspb.PostPurposeType_PostPurposeRegister
-	case userpb.TriggerAuthPurpose_TriggerAuthPurposeLogin:
-		purposeType = postsbspb.PostPurposeType_PostPurposeLogin
-	case userpb.TriggerAuthPurpose_TriggerAuthPurposeResetPassword:
-		purposeType = postsbspb.PostPurposeType_PostPurposeResetPassword
+	case userpb.TriggerAuthPurpose_TRIGGER_AUTH_PURPOSE_REGISTER:
+		purposeType = postsbspb.PostPurposeType_POST_PURPOSE_TYPE_REGISTER
+	case userpb.TriggerAuthPurpose_TRIGGER_AUTH_PURPOSE_LOGIN:
+		purposeType = postsbspb.PostPurposeType_POST_PURPOSE_TYPE_LOGIN
+	case userpb.TriggerAuthPurpose_TRIGGER_AUTH_PURPOSE_RESET_PASSWORD:
+		purposeType = postsbspb.PostPurposeType_POST_PURPOSE_TYPE_RESET_PASSWORD
 	default:
 		err := cuserror.NewWithErrorMsg(fmt.Sprintf("unknown purpose %v", purposeType))
 		logger.Error(ctx, err)
@@ -46,14 +46,8 @@ func GRPCPostCode(ctx context.Context, purpose userpb.TriggerAuthPurpose, userNa
 		ExpiredTimestamp: time.Now().Add(cfg.ValidDelayDuration).Unix(),
 	}
 
-	resp, err := postClient.PostCode(ctx, req)
+	_, err := postClient.PostCode(ctx, req)
 	if err != nil {
-		return err
-	}
-
-	if resp.Status.GetStatus() != postsbspb.PostSBSStatus_PS_SBS_SUCCESS {
-		err = cuserror.NewWithErrorMsg(fmt.Sprintf("%v:%v", resp.Status.GetStatus(), resp.Status.Msg))
-
 		return err
 	}
 

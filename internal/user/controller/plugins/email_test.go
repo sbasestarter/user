@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-postsbs-go"
 	userpb "github.com/sbasestarter/proto-repo/gen/protorepo-user-go"
 	"github.com/sgostarter/i/l"
 )
@@ -30,11 +30,11 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 			fields{postClient: nil},
 			args{user: &userpb.UserId{
 				UserName: "abc@web.com",
-				UserVe:   userpb.VerificationEquipment_VEAuto.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_UNSPECIFIED.String(),
 			}},
 			&userpb.UserId{
 				UserName: "abc@web.com",
-				UserVe:   userpb.VerificationEquipment_VEMail.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String(),
 			},
 			true,
 		},
@@ -43,11 +43,11 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 			fields{postClient: nil},
 			args{user: &userpb.UserId{
 				UserName: "abc@web.com",
-				UserVe:   userpb.VerificationEquipment_VEMail.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String(),
 			}},
 			&userpb.UserId{
 				UserName: "abc@web.com",
-				UserVe:   userpb.VerificationEquipment_VEMail.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String(),
 			},
 			true,
 		},
@@ -56,11 +56,11 @@ func TestEmailAuthentication_FixUserId(t *testing.T) {
 			fields{postClient: nil},
 			args{user: &userpb.UserId{
 				UserName: "a111@aa.cn",
-				UserVe:   userpb.VerificationEquipment_VEMail.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String(),
 			}},
 			&userpb.UserId{
 				UserName: "a111@aa.cn",
-				UserVe:   userpb.VerificationEquipment_VEMail.String(),
+				UserVe:   userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String(),
 			},
 			true,
 		},

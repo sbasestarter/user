@@ -3,8 +3,8 @@ package factory
 import (
 	"context"
 
-	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-center-go"
-	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-post-sbs-go"
+	filecenterpb "github.com/sbasestarter/proto-repo/gen/protorepo-file-go"
+	postsbspb "github.com/sbasestarter/proto-repo/gen/protorepo-postsbs-go"
 	"github.com/sbasestarter/user/internal/config"
 	"github.com/sgostarter/i/l"
 	"github.com/sgostarter/librediscovery/discovery"

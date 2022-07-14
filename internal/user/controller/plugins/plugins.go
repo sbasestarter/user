@@ -31,9 +31,9 @@ func NewPlugins(cfg *config.Config, cliFactory factory.GRPCClientFactory, logger
 		logger:          logger.WithFields(l.StringField(l.ClsKey, "Plugins")).GetWrapperWithContext(),
 	}
 
-	plugins.authentications[userpb.VerificationEquipment_VEMail.String()] =
+	plugins.authentications[userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_MAIL.String()] =
 		NewEmailAuthentication(&cfg.EmailConfig, cliFactory, logger)
-	plugins.authentications[userpb.VerificationEquipment_VEPhone.String()] =
+	plugins.authentications[userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_PHONE.String()] =
 		NewPhoneAuthentication(&cfg.PhoneConfig, cliFactory, logger)
 
 	return plugins
@@ -62,10 +62,10 @@ func (ps *Plugins) pluginsDo(user *userpb.UserId, fn func(plugin Plugin) bool) {
 
 func (ps *Plugins) FixUserID(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus,
 	userFixed *userpb.UserId, err error) {
-	status = userpb.UserStatus_US_DONT_SUPPORT
+	status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 	if user == nil {
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		err = cuserror.NewWithErrorMsg(fmt.Sprintf("invalid user: %+v", user))
 
@@ -90,9 +90,9 @@ func (ps *Plugins) FixUserID(ctx context.Context, user *userpb.UserId) (status u
 
 		if errRet != nil {
 			err = errRet
-			status = userpb.UserStatus_US_BAD_INPUT
+			status = userpb.UserStatus_USER_STATUS_BAD_INPUT
 		} else {
-			status = userpb.UserStatus_US_SUCCESS
+			status = userpb.UserStatus_USER_STATUS_SUCCESS
 			userFixed = userResp
 		}
 
@@ -104,16 +104,16 @@ func (ps *Plugins) FixUserID(ctx context.Context, user *userpb.UserId) (status u
 
 func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserId, purpose userpb.TriggerAuthPurpose) (
 	status userpb.UserStatus, code string, err error) {
-	status = userpb.UserStatus_US_DONT_SUPPORT
+	status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 	newCode := ps.newVerifyCode()
 
 	ps.pluginDo(user, func(plugin Plugin) {
 		err = plugin.TriggerAuthentication(ctx, user.UserName, newCode, purpose)
 		if err != nil {
-			status = userpb.UserStatus_US_FAILED
+			status = userpb.UserStatus_USER_STATUS_FAILED
 		} else {
-			status = userpb.UserStatus_US_SUCCESS
+			status = userpb.UserStatus_USER_STATUS_SUCCESS
 			code = newCode
 		}
 	})
@@ -123,16 +123,16 @@ func (ps *Plugins) TriggerAuthentication(ctx context.Context, user *userpb.UserI
 
 func (ps *Plugins) GetNickName(ctx context.Context, user *userpb.UserId) (status userpb.UserStatus, nickName string) {
 	if user == nil {
-		status = userpb.UserStatus_US_FAILED
+		status = userpb.UserStatus_USER_STATUS_FAILED
 
 		return
 	}
 
-	status = userpb.UserStatus_US_DONT_SUPPORT
+	status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 	ps.pluginDo(user, func(plugin Plugin) {
 		nickName = plugin.GetNickName(ctx, user.UserName)
-		status = userpb.UserStatus_US_SUCCESS
+		status = userpb.UserStatus_USER_STATUS_SUCCESS
 	})
 
 	return
@@ -140,15 +140,15 @@ func (ps *Plugins) GetNickName(ctx context.Context, user *userpb.UserId) (status
 
 func (ps *Plugins) TryAutoLogin(ctx context.Context, user *userpb.UserId, token string) (
 	status userpb.UserStatus, userFixed *userpb.UserId, nickName, avatar string) {
-	if user.UserVe == userpb.VerificationEquipment_VEWxMinA.String() {
+	if user.UserVe == userpb.VerificationEquipment_VERIFICATION_EQUIPMENT_WX_MINA.String() {
 		ps.logger.Warn(ctx, "WxMinA not implement")
 
-		status = userpb.UserStatus_US_NOT_IMPLEMENT
+		status = userpb.UserStatus_USER_STATUS_NOT_IMPLEMENT
 
 		return
 	}
 
-	status = userpb.UserStatus_US_DONT_SUPPORT
+	status = userpb.UserStatus_USER_STATUS_DONT_SUPPORT
 
 	return
 }

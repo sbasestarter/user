@@ -24,7 +24,7 @@ func (c *Controller) signResponseInfoAfterCheckPassEx(ctx context.Context, userI
 		if err != nil {
 			c.logger.Errorf(ctx, "get user info failed: %v", err)
 
-			status = userpb.UserStatus_US_INTERNAL_ERROR
+			status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 			return
 		}
@@ -43,12 +43,12 @@ func (c *Controller) signResponseInfoAfterCheckPassEx(ctx context.Context, userI
 	if err != nil {
 		c.logger.Errorf(ctx, "sign response info on auth info failed: %v", err)
 
-		status = userpb.UserStatus_US_INTERNAL_ERROR
+		status = userpb.UserStatus_USER_STATUS_INTERNAL_ERROR
 
 		return
 	}
 
-	status = userpb.UserStatus_US_SUCCESS
+	status = userpb.UserStatus_USER_STATUS_SUCCESS
 
 	return
 }

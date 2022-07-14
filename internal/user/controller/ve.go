@@ -25,17 +25,17 @@ func (c *Controller) checkVe(user *userpb.UserId, code string) (userpb.UserStatu
 		if errors.Is(err, redis.Nil) {
 			err = fmt.Errorf("verify ve expired: %w", err)
 
-			return userpb.UserStatus_US_WRONG_CODE, err
+			return userpb.UserStatus_USER_STATUS_WRONG_CODE, err
 		}
 
-		return userpb.UserStatus_US_INTERNAL_ERROR, err
+		return userpb.UserStatus_USER_STATUS_INTERNAL_ERROR, err
 	}
 
 	if verifyCodeInDB != code {
-		return userpb.UserStatus_US_WRONG_CODE, nil
+		return userpb.UserStatus_USER_STATUS_WRONG_CODE, nil
 	}
 
-	return userpb.UserStatus_US_SUCCESS, nil
+	return userpb.UserStatus_USER_STATUS_SUCCESS, nil
 }
 
 func (c *Controller) removeVe(user *userpb.UserId) {
