@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -70,10 +71,16 @@ func (c *Controller) checkSSOJumpURL(ctx context.Context, ssoJumpURL string) (va
 	}
 
 	if _, ok := c.cfg.WhiteListSSOJumpDomainMap[u.Host]; !ok {
-		return
-	}
+		for _, match := range c.cfg.WhiteListSSOJumpDomainMatch {
+			if strings.HasSuffix(u.Host, match) {
+				valid = true
 
-	valid = true
+				break
+			}
+		}
+	} else {
+		valid = true
+	}
 
 	return
 }

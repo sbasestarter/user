@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -11,20 +12,21 @@ import (
 )
 
 type Config struct {
-	GRpcServerConfig          servicetoolset.GRPCServerConfig `yaml:"grpc_server_config" json:"grpc_server_config"`
-	GRpcClientConfigTpl       clienttoolset.GRPCClientConfig  `yaml:"grpc_client_config_tpl" json:"grpc_client_config_tpl"`
-	DbConfig                  dbtoolset.Config                `yaml:"db_config"`
-	GoogleAuthenticator       googleAuthenticatorOption       `yaml:"google_authenticator" json:"google_authenticator"`
-	DefaultUserAvatar         string                          `yaml:"default_user_avatar" json:"default_user_avatar"`
-	PwdSecret                 string                          `yaml:"pwd_secret" json:"pwd_secret"`
-	Token                     tokenConfig                     `yaml:"token" json:"token"`
-	DummyVerifyCode           string                          `yaml:"dummy_verify_code" json:"dummy_verify_code"`
-	EmailConfig               VEConfig                        `yaml:"email_config" json:"email_config"`
-	PhoneConfig               VEConfig                        `yaml:"phone_config" json:"phone_config"`
-	CsrfExpire                time.Duration                   `yaml:"csrf_expire" json:"csrf_expire"`
-	WhiteListTokens           []string                        `yaml:"white_list_tokens" json:"white_list_tokens"`
-	WhiteListSSOJumpDomain    []string                        `yaml:"white_list_sso_jump_domain" json:"white_list_sso_jump_domain"`
-	WhiteListSSOJumpDomainMap map[string]interface{}          `yaml:"-" ignored:"true"`
+	GRpcServerConfig            servicetoolset.GRPCServerConfig `yaml:"grpc_server_config" json:"grpc_server_config"`
+	GRpcClientConfigTpl         clienttoolset.GRPCClientConfig  `yaml:"grpc_client_config_tpl" json:"grpc_client_config_tpl"`
+	DbConfig                    dbtoolset.Config                `yaml:"db_config"`
+	GoogleAuthenticator         googleAuthenticatorOption       `yaml:"google_authenticator" json:"google_authenticator"`
+	DefaultUserAvatar           string                          `yaml:"default_user_avatar" json:"default_user_avatar"`
+	PwdSecret                   string                          `yaml:"pwd_secret" json:"pwd_secret"`
+	Token                       tokenConfig                     `yaml:"token" json:"token"`
+	DummyVerifyCode             string                          `yaml:"dummy_verify_code" json:"dummy_verify_code"`
+	EmailConfig                 VEConfig                        `yaml:"email_config" json:"email_config"`
+	PhoneConfig                 VEConfig                        `yaml:"phone_config" json:"phone_config"`
+	CsrfExpire                  time.Duration                   `yaml:"csrf_expire" json:"csrf_expire"`
+	WhiteListTokens             []string                        `yaml:"white_list_tokens" json:"white_list_tokens"`
+	WhiteListSSOJumpDomain      []string                        `yaml:"white_list_sso_jump_domain" json:"white_list_sso_jump_domain"`
+	WhiteListSSOJumpDomainMap   map[string]interface{}          `yaml:"-" ignored:"true"`
+	WhiteListSSOJumpDomainMatch []string                        `yaml:"-" ignored:"true"`
 
 	DiscoveryServerNames map[string]string `yaml:"discovery_server_names" json:"discovery_server_names"`
 
@@ -90,7 +92,11 @@ func (cfg *Config) fixConfig() {
 	cfg.WhiteListSSOJumpDomainMap = make(map[string]interface{})
 
 	for _, s := range cfg.WhiteListSSOJumpDomain {
-		cfg.WhiteListSSOJumpDomainMap[s] = true
+		if strings.HasSuffix(s, "*") {
+			cfg.WhiteListSSOJumpDomainMatch = append(cfg.WhiteListSSOJumpDomainMatch, s[1:])
+		} else {
+			cfg.WhiteListSSOJumpDomainMap[s] = true
+		}
 	}
 
 	if cfg.GoogleAuthenticator.KeyExpire <= 0 {
